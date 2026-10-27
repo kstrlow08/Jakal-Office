@@ -3,6 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import { HwpDocument, initSync } from '@rhwp/core';
 import { insertNestedTable, parentTableCell, editNestedTable } from '../studio/nested-table.ts';
+import { mathDocument } from './document-fixtures.mjs';
 
 initSync({ module: fs.readFileSync(new URL('../node_modules/@rhwp/core/rhwp_bg.wasm', import.meta.url)) });
 const source = fs.readFileSync(new URL('../public/sample.hwpx', import.meta.url));
@@ -143,7 +144,7 @@ test('deleting the last inner row is rejected without changing either table', t 
 });
 
 test('nested edits in the second section resolve the right parent table', t => {
-  const doc = new HwpDocument(fs.readFileSync(new URL('../../examples/samples/hwpx/math_template_2_formula_fixed.hwpx', import.meta.url)));
+  const doc = mathDocument({ secondSection: true });
   t.after(() => doc.free());
   const paragraph = doc.getParagraphCount(1) - 1;
   const table = JSON.parse(doc.createTable(1, paragraph, doc.getParagraphLength(1, paragraph), 2, 2));

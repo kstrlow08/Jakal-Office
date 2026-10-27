@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath
 
 from lxml import etree
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from jakal_hwpx.namespaces import NS
 from jakal_hwpx.parts import XmlPart
 from jakal_hwpx.elements import _replace_paragraph_text_preserving_controls

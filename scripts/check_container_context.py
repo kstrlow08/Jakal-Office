@@ -17,10 +17,10 @@ def main():
         cwd=REPO, input=b'FROM scratch\nCOPY . /\n', check=True)
     names = {path.relative_to(destination).as_posix() for path in destination.rglob('*') if path.is_file()}
     expected = {'web/package-lock.json', 'web/src/main.tsx', 'web/studio/host-bridge.ts',
-        'server/app.py', 'src/jakal_hwpx/__init__.py', *PUBLIC_DEMOS}
+        'server/app.py', 'pyproject.toml', *PUBLIC_DEMOS}
     assert expected <= names, f'Missing container build inputs: {sorted(expected - names)}'
     forbidden = {name for name in names if name.startswith(('web/node_modules/', 'web/dist/',
-        'web/public/studio/', '.git/', '.web-data/', '.venv/', 'tests/', 'web_tests/'))
+        'web/public/studio/', '.git/', '.web-data/', '.venv/', 'src/', 'tests/', 'web_tests/'))
         or '/__pycache__/' in name or any(part.startswith('.env') for part in Path(name).parts)}
     public_files = {*PUBLIC_DEMOS, 'web/public/favicon.svg', 'web/public/404.html'}
     forbidden |= {name for name in names if name.startswith('web/public/')

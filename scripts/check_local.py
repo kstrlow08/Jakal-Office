@@ -59,7 +59,7 @@ def main():
         asyncio.run(check_site(origin, stdio=False))
         client = DeploymentClient()
         client.begin()
-        from jakal_hwpx import HwpxDocument
+        from server.document_backend import HwpxDocument
         base = client.upload('restart.hwpx', HwpxDocument.blank().compile())
         result = client.json('POST', '/api/connections', {'document_id': base.rsplit('/', 1)[1], 'label': 'Docker local'}, status=201)
         assert result['stdio_config'] is None, 'A container must not advertise its Python path as a host command.'

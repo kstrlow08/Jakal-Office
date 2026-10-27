@@ -1,99 +1,40 @@
-# Releasing `jakal-hwpx`
+# Jakal Office 릴리스
 
-This project already has GitHub Actions workflows for build and publish. This file covers the local checks that should happen before pushing a PyPI release.
+Office는 `jakal-office`, 문서 엔진은 독립된 외부 의존성 `jakal-hwpx`입니다. 이 저장소에서 문서 엔진 패키지를 발행하지 않습니다. 버전은 `pyproject.toml`에서 관리합니다.
 
-## Release checklist
-
-Before tagging a release:
-
-1. Update the version in:
-   - `pyproject.toml`
-   - `src/jakal_hwpx/__init__.py`
-2. Update user-facing docs if the public API changed:
-   - `README.md`
-   - `HWPX_MODULE.md`
-   - `docs/hwpx-document.md`
-3. Re-run the focused tests for the changed surface.
-4. Rebuild `dist/`.
-5. Run `twine check`.
-
-## Local packaging setup
+## 개발 검증
 
 ```bash
-python -m pip install --upgrade build twine tox
+python -m pip install -e ".[web,web-test,release]"
+cd web
+npm ci
+npm run build
+npm test
+cd ..
+python -m pytest web_tests -q
+python scripts/check_private_artifacts.py
 ```
 
-## Recommended validation flow
-
-### 1. Fast document-model gate
-
-```bash
-python -m pytest tests/test_document_model.py tests/test_hancom_document.py -q
-```
-
-### 2. CI-compatible release gate
-
-```bash
-tox -e release
-```
-
-This gate is expected to:
-
-- run the release-oriented test matrix
-- rebuild `dist/`
-- run `python -m twine check dist/*`
-- verify version consistency
-- verify required packaged files
-
-### 3. Full Windows release gate
-
-On the Windows release machine with Hancom installed:
-
-```powershell
-python scripts/check_release.py --profile release
-```
-
-That profile adds the Hancom-facing smoke and roundtrip checks.
-
-## Build commands
-
-If you only want to prepare the package artifacts locally:
+## Python 배포물
 
 ```bash
 python -m build
-python -m twine check dist/*
+python -m twine check dist/jakal_office-*
+python -m venv build/smoke-wheel
 ```
 
-## TestPyPI
+새 환경의 Python으로 `dist/jakal_office-<version>-py3-none-any.whl[web]`을 설치하고 `python -I scripts/check_installed_package.py`를 실행합니다. sdist도 별도의 새 환경에 설치해 같은 검사를 실행합니다. CI가 Python 3.11–3.14에서 이 과정을 검사합니다.
 
-After a clean local gate:
+Python wheel은 Office 서버 코드와 변환 스크립트를 담습니다. 전체 편집기 실행에는 웹 빌드 결과, Node.js와 `@rhwp/core`가 필요합니다. 설치형·서버 번들은 아래 빌더로 구성합니다.
+
+## 애플리케이션 패키지
 
 ```bash
-python -m twine upload --repository testpypi dist/*
+python scripts/build_server_bundle.py
+# Windows에서 실행
+python scripts/build_desktop.py
 ```
 
-Then verify installation:
+Windows 빌더는 외부 모듈을 런타임에 설치해 포함합니다. 서버 번들의 Docker 빌드는 Office wheel 설치 시 외부 모듈을 받습니다. 라이브러리 소스를 앱에 복사하지 않습니다.
 
-```bash
-python -m pip install --upgrade pip
-python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple jakal-hwpx
-python -c "from jakal_hwpx import HwpxDocument; print(HwpxDocument)"
-```
-
-## PyPI
-
-For a manual upload:
-
-```bash
-python -m twine upload dist/*
-```
-
-Preferred release sequence:
-
-1. Update version and docs.
-2. Run targeted tests.
-3. Run `tox -e release`.
-4. Run `python scripts/check_release.py --profile release` on the Windows release machine.
-5. Upload to TestPyPI.
-6. Smoke-test install from TestPyPI.
-7. Upload to PyPI or trigger the publish workflow.
+GitHub의 **Build application packages** 워크플로로 패키지 빌드와 배포 검사를 수행할 수 있습니다. 저장소에는 원본 모듈의 PyPI 발행 워크플로가 포함되지 않습니다. [배포 안내](deploy/guide.html)와 [문서 보관 정책](docs/document-privacy.md)을 함께 확인하세요.

@@ -1,4 +1,4 @@
-"""Real document corpus: HTTP upload, worker edit, validate, download and reopen."""
+"""Office-authored document fixtures: HTTP upload, worker edit, validate, download and reopen."""
 from collections import Counter
 import hashlib
 import io
@@ -8,17 +8,14 @@ from zipfile import ZipFile
 from lxml import etree
 import pytest
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from server.engine import cell_text, paragraph_text
 from server.policies import targets
 from web_tests.test_api import client, wait
+from web_tests.documents import office_document
 
 ROOT = Path(__file__).resolve().parents[1]
-CORPUS = [
-    "examples/samples/hwp/기출킬러양식.hwp",
-    "examples/samples/hwpx/math_template_2_formula_fixed.hwpx",
-    "examples/samples/hwpx/social_security_application_example.hwpx",
-]
+CORPUS = ["objects.hwp", "math.hwpx", "merged.hwpx"]
 
 
 def preserved_content(raw):
@@ -51,7 +48,7 @@ def completed(client, response):
 
 @pytest.mark.parametrize("relative", CORPUS, ids=lambda value: Path(value).name)
 def test_real_document_full_roundtrip(client, tmp_path, relative):
-    source = ROOT / relative
+    source = office_document(tmp_path / relative, Path(relative).stem)
     original = source.read_bytes()
     uploaded = client.post("/api/documents", files={"file": (source.name, original)})
     completed(client, uploaded)
@@ -129,24 +126,25 @@ def test_real_document_full_roundtrip(client, tmp_path, relative):
     assert client.get(base).json()["validated"] is None
 
 
-def test_invalid_converted_hwp_is_rejected_without_publishing_a_broken_base(client):
-    # This real HWP has placeholder OLE/shape controls. The converter reports
-    # no loss but emits empty binaryItemIDRef values with no manifest targets.
-    source = ROOT / "examples/samples/hwp/generated_native_control_authoring.hwp"
+def test_invalid_converted_hwp_is_rejected_without_publishing_a_broken_base(tmp_path, monkeypatch):
+    from server.conversion import convert_hwp
+    source = tmp_path / "revision-0.hwp"
+    office_document(source)
     original = source.read_bytes()
-    response = client.post("/api/documents", files={"file": (source.name, original)})
-    assert response.status_code == 202
-    result = response.json()
-    job = wait(client, result["job_id"], timeout=135)
-    assert job["status"] == "failed", job
-    assert "변환 결과" in job["error"] and "참조 오류" in job["error"]
-    base = f"/api/documents/{result['document_id']}"
-    assert client.get(base).json()["status"] == "failed"
-    assert client.get(base + "/original").content == original
-    assert client.get(base + "/source?revision=0").status_code == 409
-    assert client.post(base + "/exports", json={"revision": 0}).status_code == 409
-    directory = client.app.state.store.directory(result["document_id"])
-    assert not (directory / "revision-0.hwpx").exists()
-    assert not (directory / "conversion.json").exists()
-    assert not (directory / "conversion-pending.hwpx").exists()
-    assert not (directory / "conversion-pending.json").exists()
+
+    def broken_converter(*args, **kwargs):
+        # Reproduce a converter's dangling binary reference without retaining
+        # an upstream/private corpus file or depending on a WASM version's bug.
+        document = HwpxDocument.blank()
+        picture = document.append_picture("image.png", b"test", media_type="image/png")
+        image = picture.element.find(".//hc:img", {"hc": "http://www.hancom.co.kr/hwpml/2011/core"})
+        image.set("binaryItemIDRef", "missing-binary")
+        (tmp_path / "conversion-pending.hwpx").write_bytes(document.compile(validate=False, auto_repair=False))
+        (tmp_path / "conversion-pending.json").write_text('{"count": 0}')
+
+    monkeypatch.setattr("server.conversion.subprocess.run", broken_converter)
+    with pytest.raises(ValueError, match="변환 결과"):
+        convert_hwp(tmp_path)
+    assert source.read_bytes() == original
+    for name in ["revision-0.hwpx", "conversion.json", "conversion-pending.hwpx", "conversion-pending.json"]:
+        assert not (tmp_path / name).exists()

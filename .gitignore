@@ -7,7 +7,6 @@ all_hwpx_flat/
 .tmp_build/
 .tox/
 .venv/
-GitHubjakal-hwpx.tox.pytest_cache/
 
 # Local corpora and scratch files kept outside Git
 hard_case/
@@ -24,22 +23,12 @@ dist/
 htmlcov/
 vendor/
 
-# Example and lab outputs generated locally
-examples/output.zip
-examples/output/
-examples/output_smoke/
-examples/output_stability_lab/
-examples/output_hwp_stability_lab/
-examples/output_bridge_stability_lab/
-examples/promo/output/
-
-# Test and runtime temp artifacts
+# Test artifacts
+tests/_tmp_pytest/
+tests/_release_tmp/
 pytest-cache-files-*/
 .pytest_cache/
 .pytest-temp-*/
-.pytest-temp-validation-issue/
-tests/_tmp_pytest/*/
-tests/_release_tmp/
 
 # Python cache
 __pycache__/

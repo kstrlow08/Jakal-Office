@@ -2,7 +2,7 @@ import json
 
 import pytest
 from fastapi.testclient import TestClient
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from jakal_hwpx.namespaces import NS
 from server.app import create_app
 from server.engine import issues, paragraph_text

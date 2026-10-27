@@ -1,27 +1,16 @@
-# jakal_hwpx docs
+# Jakal Office 문서
 
-이 폴더는 `jakal_hwpx`의 공개 API 문서를 보관합니다. 루트 [HWPX_MODULE.md](../HWPX_MODULE.md)는 전체 인덱스이고, 이 폴더의 문서는 클래스별 세부 설명을 맡습니다.
+이 폴더는 Office 편집기와 API 서버의 기능·운영·개발 문서를 보관합니다.
 
-## 문서 목록
-
-| 문서 | 설명 |
+| 문서 | 내용 |
 |---|---|
-| [architecture.md](./architecture.md) | 공개 façade와 내부 모델·codec·package 계층의 책임 경계를 설명합니다. 유지보수나 기여 작업을 시작할 때 봅니다. |
-| [web-workspace.md](./web-workspace.md) | HWPX 웹 편집기의 실행 방법, API 구성, 지원 범위와 데이터 보관 정책입니다. |
-| [hancom-document.md](./hancom-document.md) | `HancomDocument` 기준의 공통 문서 모델을 설명합니다. 새 문서를 만들거나 HWP/HWPX를 같은 코드로 다룰 때 먼저 볼 문서입니다. |
-| [hwpx-document.md](./hwpx-document.md) | `HwpxDocument`의 HWPX package, XML part, selector, append API, validation API를 설명합니다. HWPX 내부 구조를 직접 다룰 때 봅니다. |
-| [hwp-document.md](./hwp-document.md) | `HwpDocument`의 HWP 전용 객체 API를 설명합니다. 기존 `.hwp`를 직접 편집하거나 HWP native wrapper를 써야 할 때 봅니다. |
-| [bridge-and-binary.md](./bridge-and-binary.md) | `HwpHwpxBridge`와 `HwpBinaryDocument`를 설명합니다. 변환 경로를 고정하거나 HWP stream/record를 조사할 때 봅니다. |
-| [hwpx2py.md](./hwpx2py.md) | HWPX를 입력으로 받아 같은 문서를 만드는 Python 스크립트를 생성하는 `hwpx2py` 도구를 설명합니다. |
-| [hwp2py.md](./hwp2py.md) | HWP를 입력으로 받아 HWP 작성 스크립트를 생성하는 `hwp2py` 도구를 설명합니다. |
+| [Office 구조](architecture.md) | 앱과 외부 문서 모듈의 책임, 의존성 갱신 |
+| [실행·설정](web-workspace.md) | 설치, 환경 변수와 API |
+| [원문 편집기](page-editor.md) | 서식·개체 편집과 저장 |
+| [쪽 양식](page-layout-templates.md) | 페이지 배경과 템플릿 |
+| [버전 기록](version-history.md) | 변경 비교와 복원 |
+| [문서 보관](document-privacy.md) | 세션, 문서 만료와 배포 정책 |
+| [서버 안정성](backend-reliability.md) | 저장·작업 실행과 복구 |
+| [왕복 검증](qa-roundtrip.md) | Office 통합 테스트 범위 |
 
-## 이미지
-
-| 파일 | 설명 |
-|---|---|
-| [images/basic-concept.svg](./images/basic-concept.svg) | README에서 쓰는 기본 사용 흐름 그림입니다. |
-| [images/module-layers.svg](./images/module-layers.svg) | `HancomDocument`, `HwpxDocument`, `HwpDocument`의 레이어 관계를 보여 주는 그림입니다. |
-
-## 읽는 순서
-
-처음 사용하는 경우에는 [hancom-document.md](./hancom-document.md)를 먼저 보면 됩니다. 포맷별 세부 제어가 필요해지면 [hwpx-document.md](./hwpx-document.md)나 [hwp-document.md](./hwp-document.md)로 내려갑니다. 손상 원인 분석은 [bridge-and-binary.md](./bridge-and-binary.md)에서 시작하고, 샘플 문서를 재현 가능한 Python 코드로 바꿔 비교하려면 HWPX는 [hwpx2py.md](./hwpx2py.md), HWP는 [hwp2py.md](./hwp2py.md)를 보면 됩니다.
+문서 모듈의 API 설명은 [jakal-hwpx 원본 저장소](https://github.com/Ahnd6474/jakal-hwpx/tree/main/docs)에서 관리합니다.

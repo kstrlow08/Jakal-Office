@@ -19,6 +19,24 @@ from check_private_artifacts import PUBLIC_DEMOS, private_artifact
 REPO = Path(__file__).resolve().parents[1]
 
 
+def build_office_wheel(destination):
+    # A direct wheel build can collect deleted fork code left in build/lib.
+    # Build from a new sdist so only current, explicitly listed sources enter it.
+    destination.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='jakal-office-source-') as name:
+        source = Path(name)
+        subprocess.run([sys.executable, '-m', 'build', '--sdist', '--outdir', str(source),
+            '--no-isolation'], cwd=REPO, check=True)
+        archive, = source.glob('jakal_office-*.tar.gz')
+        subprocess.run([sys.executable, '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',
+            '--wheel-dir', str(destination), str(archive)], cwd=source, check=True)
+    wheel, = destination.glob('jakal_office-*.whl')
+    with zipfile.ZipFile(wheel) as archive:
+        if any(name.startswith(('jakal_hwpx/', 'src/')) for name in archive.namelist()):
+            raise RuntimeError('Office wheel must not contain vendored document engine sources.')
+    return wheel
+
+
 def copy_application(app):
     (app / 'server').mkdir(parents=True)
     for file in (REPO / 'server').iterdir():
@@ -78,7 +96,9 @@ def extract_python(archive, target):
             if path.is_absolute() or '..' in path.parts or '\\' in member.filename or ':' in member.filename:
                 raise RuntimeError('Invalid runtime archive path.')
             source.extract(member, target)
-    (target / 'python313._pth').write_text('python313.zip\n.\n../packages\n../../app\nimport site\n', encoding='utf-8')
+    # Office is now an installed package too. Load the application copy first
+    # so runtime.REPO still resolves beside web assets and the Node converter.
+    (target / 'python313._pth').write_text('python313.zip\n.\n../../app\n../packages\nimport site\n', encoding='utf-8')
     (target / 'sitecustomize.py').write_text('import site, sys\nfrom pathlib import Path\nsys.dont_write_bytecode = True\nsite.addsitedir(str(Path(__file__).resolve().parents[1] / "packages"))\n', encoding='utf-8')
     subprocess.run([str(target / 'python.exe'), '-I', '-B', '-X', 'utf8', '-c',
         "import py_compile; py_compile.compile('sitecustomize.py', cfile='sitecustomize.pyc', doraise=True)"], cwd=target, check=True)
@@ -129,8 +149,7 @@ def main():
     root = stage / 'Jakal-Workspace'
     app = root / 'app'
     app.mkdir(parents=True)
-    subprocess.run([sys.executable, '-m', 'build', '--wheel', '--outdir', str(stage / 'wheels'), '--no-isolation'], cwd=REPO, check=True)
-    wheel = next((stage / 'wheels').glob('*.whl'))
+    wheel = build_office_wheel(stage / 'wheels')
     extract_python(python_zip, root / 'runtime/python')
     node_target = root / 'runtime/node'
     node_target.mkdir()

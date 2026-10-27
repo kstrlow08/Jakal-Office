@@ -1,19 +1,19 @@
-import shutil
 from pathlib import Path
 
 import pytest
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from server.engine import process
+from web_tests.documents import office_document
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize("name", ["generated_feature_matrix.hwpx", "math_template_2_formula_fixed.hwpx", "social_security_application_example.hwpx"])
+@pytest.mark.parametrize("name", ["form", "merged", "math"])
 def test_real_corpus_analysis_and_noop_validation(tmp_path, name):
-    source = ROOT / "examples" / "samples" / "hwpx" / name
+    source = office_document(tmp_path / (name + ".hwpx"), name)
     destination = tmp_path / "revision-0.hwpx"
-    shutil.copyfile(source, destination)
+    destination.write_bytes(source.read_bytes())
     result = process(tmp_path, "analyze", {}, name)
     assert result["report"]["new_issues"] == []
     assert process(tmp_path, "validate", {"revision": 0}, name)["revision"] == 0

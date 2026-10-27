@@ -1,1 +1,1 @@
-"""Local web application for the jakal-hwpx engine."""
+"""Jakal Office application, using the separately installed jakal-hwpx engine."""

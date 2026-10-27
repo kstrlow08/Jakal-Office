@@ -1,7 +1,7 @@
 """Build the small, repository-owned document used by the web demo."""
 from pathlib import Path
 
-from jakal_hwpx import HwpxDocument, HwpDocument
+from server.document_backend import HwpxDocument, HwpDocument
 
 
 def build():

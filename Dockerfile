@@ -13,7 +13,7 @@ RUN npm run build
 FROM python:3.11-slim-bookworm AS python-dependencies
 WORKDIR /build
 COPY pyproject.toml README.md LICENSE THIRD_PARTY_NOTICES.md ./
-COPY src/ ./src/
+COPY server/ ./server/
 RUN pip install --no-cache-dir --prefix=/install '.[web]'
 
 FROM python:3.11-slim-bookworm AS runtime

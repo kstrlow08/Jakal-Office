@@ -61,7 +61,7 @@ def test_real_production_process_and_loopback_healthcheck(tmp_path, monkeypatch)
         'JAKAL_ENV': 'production', 'JAKAL_HOST': '127.0.0.1', 'JAKAL_PORT': port,
         'JAKAL_PUBLIC_ORIGIN': 'https://deployment.invalid',
         'JAKAL_TRUSTED_PROXIES': '127.0.0.1', 'JAKAL_DATA_DIR': str(tmp_path / 'private'),
-        'PYTHONPATH': str(REPO / 'src') + os.pathsep + str(REPO),
+        'PYTHONPATH': str(REPO),
     }
     for key, value in env.items():
         if key.startswith('JAKAL_'):

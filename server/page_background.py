@@ -140,7 +140,7 @@ def apply_backgrounds(document, pages: list[BackgroundPage], section_index: int 
 
 
 def make_background_document(layout, pages: list[BackgroundPage]):
-    from jakal_hwpx import HwpxDocument
+    from server.document_backend import HwpxDocument
     from .page_layout import apply_layout
     document = HwpxDocument.blank()
     checked = checked_pages(pages)

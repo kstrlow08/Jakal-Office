@@ -11,7 +11,7 @@ import httpx2
 from mcp import Client, StdioServerParameters
 from mcp.client.streamable_http import streamable_http_client
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 
 
 async def check_site(origin, *, stdio=True, verify=True):

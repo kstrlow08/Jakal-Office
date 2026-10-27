@@ -290,7 +290,7 @@ def create_app(data_dir: Path | None = None, *, run_worker: bool = True) -> Fast
 
     @app.post('/api/documents/from-page-layout', status_code=202)
     def from_page_layout(body: PageLayoutDocumentRequest, request: Request):
-        from jakal_hwpx import HwpxDocument
+        from server.document_backend import HwpxDocument
         from .page_layout import apply_layout
         if body.background_pages:
             return generated_document(body.title, request, analysis_payload={'page_template': body.model_dump()})
@@ -353,7 +353,7 @@ def create_app(data_dir: Path | None = None, *, run_worker: bool = True) -> Fast
             raise WorkspaceError('revision_conflict', '문서 버전이 변경되었습니다. 최신 문서를 다시 열어 주세요.')
         if view(document)['format'] != 'hwpx':
             raise WorkspaceError('conversion_required', 'HWPX로 변환한 문서를 다시 열어 주세요.')
-        from jakal_hwpx import HwpxDocument
+        from server.document_backend import HwpxDocument
         from .page_layout import read_layouts
         return {'revision': revision, 'sections': read_layouts(HwpxDocument.open(store.directory(identifier) / f'revision-{revision}.hwpx', validate=False))}
 

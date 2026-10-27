@@ -155,7 +155,7 @@ Jakal Office의 화면은 **React·TypeScript·Vite**, API는 **Python·FastAPI*
 | `web/src/` | 문서 목록, 편집 화면, 보기 전환과 작업 도구 |
 | `web/studio/` | 편집기 통합, 개체 레이아웃 탭과 입력·파일 작업 연결 |
 | `server/` | 업로드, 변환, 저장, 검증, 버전·세션 관리와 작업 실행 |
-| `src/jakal_hwpx/` | HWP·HWPX 문서 처리 라이브러리 |
+| 외부 `jakal-hwpx` 패키지 | HWP·HWPX 읽기·편집·검증·직렬화 |
 | `web/tests/`, `web_tests/` | 프론트엔드 및 웹 API·저장·배포 검사 |
 | `docs/` | 기능, 운영 정책과 개발 문서 |
 
@@ -173,7 +173,17 @@ cd ..
 python -m pytest web_tests -q
 ```
 
-문서 처리 라이브러리의 배포 패키지명은 `jakal-hwpx`, Python import 경로는 `jakal_hwpx`입니다. API를 직접 사용하는 개발자는 [모듈 안내](HWPX_MODULE.md)와 [API 문서 목록](docs/README.md)을 참고하세요.
+Office의 Python 배포 패키지명은 `jakal-office`입니다. 문서 처리는 별도로 배포되는 [`jakal-hwpx`](https://github.com/Ahnd6474/jakal-hwpx)의 **1.0** 버전을 의존성으로 설치해 사용합니다. 원본 라이브러리 소스·샘플·테스트는 이 저장소에 포함하지 않습니다. 버전 고정과 호환 계층은 [Office 구조](docs/architecture.md), 모듈 API는 [원본 문서](https://github.com/Ahnd6474/jakal-hwpx/tree/main/docs)를 참고하세요.
+
+기존 fork의 개발 환경을 재사용한다면 로컬 소스를 가리키던 editable 설치도 교체합니다.
+
+```bash
+python -m pip uninstall -y jakal-hwpx
+python -m pip install -e ".[web,web-test]"
+python -c "import jakal_hwpx; print(jakal_hwpx.__version__, jakal_hwpx.__file__)"
+```
+
+마지막 명령의 경로는 가상환경의 `site-packages/jakal_hwpx`를 가리켜야 합니다.
 
 ## 더 알아보기
 

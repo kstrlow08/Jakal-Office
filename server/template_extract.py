@@ -141,7 +141,7 @@ def extract_images(paths: list[Path], name: str):
 
 
 def extract_hwpx(path: Path, name: str):
-    from jakal_hwpx import HwpxDocument
+    from server.document_backend import HwpxDocument
     from jakal_hwpx.namespaces import NS
     from .engine import inspect_archive
     try:

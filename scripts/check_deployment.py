@@ -9,7 +9,7 @@ import secrets
 import time
 from urllib.parse import urlsplit
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from server.runtime import REPO, server_options
 
 

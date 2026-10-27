@@ -60,6 +60,6 @@ HTTPS 인증서 설정, 프록시의 요청 속도 제한, 전체 저장 용량 
 
 `python scripts/check_private_artifacts.py`를 실행한다. CI도 동일 검사를 실행한다. Git 추적 파일 중 업로드 저장소·SQLite·실제 환경 변수 파일·개인키·문서 스냅숏·작업 임시 파일·공개 웹 경로의 HWP/HWPX/PDF가 있으면 실패한다. 예외는 검토한 생성형 소개용 샘플 두 개의 정확한 해시뿐이다. 내용이 바뀌면 다시 실패한다. 실제 사용자 문서를 샘플 이름으로 바꾸어도 통과하지 못한다.
 
-이 검사는 문서 전체의 개인정보 탐지나 Git 과거 이력 검사가 아니다. 기존 `examples/`, `debug sample/` 등 추적 중인 문서는 별도로 권리·개인정보를 검토해야 한다. 과거에 비공개 파일을 커밋했다면 `.gitignore`만으로 이력에서 제거되지 않는다. 공개 전 이력 정리와 노출된 인증 정보 폐기가 필요하다.
+이 검사는 문서 전체의 개인정보 탐지나 Git 과거 이력 검사가 아니다. 공개 데모 이외의 테스트 문서는 임시 폴더에서 생성한다. 사용자 문서는 저장소에 추가하지 않는다. 과거에 비공개 파일을 커밋했다면 `.gitignore`만으로 이력에서 제거되지 않는다. 공개 전 이력 정리와 노출된 인증 정보 폐기가 필요하다.
 
 설계 참고: [OWASP 파일 업로드 지침](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html), [세션 관리 지침](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [접근 권한 검사 지침](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).

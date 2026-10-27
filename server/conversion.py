@@ -13,7 +13,7 @@ from lxml import etree
 
 
 def inspect_converted(path: Path) -> None:
-    from jakal_hwpx import HwpxDocument
+    from server.document_backend import HwpxDocument
     from .engine import inspect_archive, issues
 
     inspect_archive(path)

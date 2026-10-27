@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from jakal_hwpx.namespaces import NS
 from .files import atomic_json, atomic_write
 

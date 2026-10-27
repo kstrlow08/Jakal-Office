@@ -5,7 +5,7 @@ import secrets
 from pathlib import Path
 
 from lxml import etree
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from jakal_hwpx.namespaces import NS
 from jakal_hwpx.elements import _invalidate_paragraph_layout
 from .schemas import PageLayout, PageLayoutRequest

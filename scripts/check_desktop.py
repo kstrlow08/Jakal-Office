@@ -18,7 +18,7 @@ import zipfile
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 from check_deployment import DeploymentClient, check_deployment
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from check_mcp import check_site
 
 
@@ -72,7 +72,12 @@ def check_imports(client):
     from PIL import Image
     image = io.BytesIO()
     Image.new('RGB', (32, 48), 'white').save(image, 'JPEG')
-    pdf = next((REPO / 'examples/samples/pdf').glob('*.pdf')).read_bytes()
+    import pypdfium2 as pdfium
+    output = io.BytesIO()
+    with pdfium.PdfDocument.new() as document:
+        document.new_page(842, 595).close()
+        document.save(output)
+    pdf = output.getvalue()
     for name, raw, source in [('image.jpg', image.getvalue(), 'images'), ('sample.pdf', pdf, 'pdf')]:
         boundary = secrets.token_hex(12)
         content = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="{name}"\r\n'

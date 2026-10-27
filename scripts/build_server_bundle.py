@@ -9,7 +9,7 @@ import sys
 import tempfile
 import tomllib
 
-from build_desktop import REPO, archive_release, copy_application
+from build_desktop import REPO, archive_release, build_office_wheel, copy_application
 
 
 def main():
@@ -26,7 +26,7 @@ def main():
     stage = Path(tempfile.mkdtemp(prefix='build-', dir=work))
     root = stage / 'Jakal-Server'
     copy_application(root / 'app')
-    subprocess.run([sys.executable, '-m', 'build', '--wheel', '--outdir', str(root / 'packages'), '--no-isolation'], cwd=REPO, check=True)
+    build_office_wheel(root / 'packages')
     for source, target in [('LICENSE', 'LICENSE'), ('THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_NOTICES.md'),
             ('compose.yaml', 'compose.yaml'), ('.env.production.example', '.env.production.example'),
             ('deploy/Dockerfile.release', 'Dockerfile'), ('deploy/manage.sh', 'manage.sh'),

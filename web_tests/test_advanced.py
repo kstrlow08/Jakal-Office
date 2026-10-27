@@ -6,16 +6,17 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from jakal_hwpx import HwpDocument, HwpxDocument
+from server.document_backend import HwpDocument, HwpxDocument
 from server.hwp_engine import process_hwp
 from web_tests.test_api import client, raw_document, upload, wait
+from web_tests.documents import office_document, control_document
 
 
 def test_hwp_converts_to_hwpx_before_editing(client, tmp_path):
     source = tmp_path / "원본.HWP"
-    document = HwpDocument.blank()
+    document = HwpDocument.open(Path(__file__).resolve().parents[1] / 'web/public/sample.hwp')
     document.append_paragraph("편집할 본문")
-    document.append_table(rows=2, cols=2, cell_texts=[["항목", "값"], ["이름", "자칼"]], section_index=0)
+    document.tables()[0].set_cell_text(1, 1, "자칼")
     document.save(source)
     original = source.read_bytes()
     uploaded = client.post("/api/documents", files={"file": (source.name, original)}).json()
@@ -56,13 +57,13 @@ def test_hwp_converts_to_hwpx_before_editing(client, tmp_path):
     assert client.get(base + "/source?revision=0").content == converted
 
 
-@pytest.mark.parametrize("relative", ["examples/samples/hwp/기출킬러양식.hwp", "web/public/sample.hwp"])
+@pytest.mark.parametrize("relative", ["authored", "demo"])
 def test_math_hwp_conversion_preserves_tables_equations_and_pictures(tmp_path, relative):
     from server.engine import process
     from zipfile import ZipFile
     from collections import Counter
     from lxml import etree
-    source = Path(__file__).resolve().parents[1] / relative
+    source = office_document(tmp_path / "objects.hwp") if relative == "authored" else Path(__file__).resolve().parents[1] / "web/public/sample.hwp"
     raw = source.read_bytes()
     (tmp_path / "revision-0.hwp").write_bytes(raw)
     (tmp_path / "convert-hwp").touch()
@@ -100,16 +101,17 @@ def test_conversion_failure_never_publishes_partial_hwpx(tmp_path, monkeypatch):
     assert (tmp_path / "revision-0.hwp").read_bytes() == raw
 
 
-@pytest.mark.parametrize("name", ["기출킬러양식.hwp", "generated_native_control_authoring.hwp"])
+@pytest.mark.parametrize("name", ["objects.hwp", "invalid-control.hwp"])
 def test_real_hwp_noop_and_controls_preserved(tmp_path, name):
-    raw = (Path(__file__).resolve().parents[1] / "examples" / "samples" / "hwp" / name).read_bytes()
+    source = control_document(tmp_path / name) if name == "invalid-control.hwp" else office_document(tmp_path / name)
+    raw = source.read_bytes()
     (tmp_path / "revision-0.hwp").write_bytes(raw)
     result = process_hwp(tmp_path, "analyze", {}, name)
     assert result["revision"] == 0
     result = process_hwp(tmp_path, "validate", {"revision": 0}, name)
     assert result["report"]["new_issues"] == []
     assert (tmp_path / "revision-0.hwp").read_bytes() == raw
-    if name == "generated_native_control_authoring.hwp":
+    if name == "invalid-control.hwp":
         from server.policies import targets
         snapshot = json.loads((tmp_path / "snapshot-0.json").read_text(encoding="utf-8"))
         target = next(t for t in targets(snapshot).values() if t["editable"] and t["text"])

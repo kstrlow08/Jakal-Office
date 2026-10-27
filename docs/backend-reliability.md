@@ -39,10 +39,10 @@ HWPX 편집 파일·스냅샷·프로세스 결과 JSON은 임시 파일에 작�
 
 `web_tests/test_backend_reliability.py`는 동시 업로드, 분석 등록 롤백, 불완전한 프로세스 결과, 저장 결과 누락·불일치, 늦은 완료, 파일 교체 실패, 삭제 복원, 재시작 임시 파일 정리, DB 장애 후 재시도, 느린 조회 중 다른 요청 응답을 검사합니다.
 
-`web_tests/test_api.py`에서는 긴 파일명 확장자 보존과 손상·누락된 스냅샷에서 원본 다운로드도 검사합니다. 기존 `web_tests/test_real_roundtrip.py`는 실제 HWP·HWPX 업로드부터 편집·검증·다운로드·재업로드와 개체·첨부 보존을 검사합니다.
+`web_tests/test_api.py`에서는 긴 파일명 확장자 보존과 손상·누락된 스냅샷에서 원본 다운로드도 검사합니다. 기존 `web_tests/test_real_roundtrip.py`는 Office에서 생성한 HWP·HWPX 업로드부터 편집·검증·다운로드·재업로드와 개체·첨부 보존을 검사합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest web_tests tests/test_layout_preservation.py -q
+.\.venv\Scripts\python.exe -m pytest web_tests -q
 ```
 
 2026-10-20 확인 결과: 위 회귀 검사 103개 통과. 실행 중인 `127.0.0.1:8000`에서도 생성한 HWPX와 실제 HWP 샘플(`기출킬러양식.hwp`)의 업로드 → 편집 → 검증 → 다운로드를 검사했습니다. 다운로드 파일의 수정 내용을 재열기로 확인했고 새 검증 오류는 0개, 업로드 원본은 바이트 단위로 동일했습니다. 이 검사에서 만든 서버 문서는 검사 후 삭제했습니다.

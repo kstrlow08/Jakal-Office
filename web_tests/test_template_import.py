@@ -4,13 +4,14 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from server.engine import issues
 from server.page_background import apply_backgrounds, background_pictures, decode_image
 from server.page_layout import body_signature
 from server.schemas import BackgroundPage, PageLayout
 from server.template_extract import ExtractionError, run_extraction
 from web_tests.test_api import client, raw_document, upload, wait
+from web_tests.documents import landscape_pdf
 
 
 def jpeg(color='red', size=(80, 120)):
@@ -74,9 +75,9 @@ def test_jpg_collection_preserves_order_and_orientation_and_creates_editable_doc
     assert len(saved.pictures()) == 2 and issues(saved) == []
 
 
-def test_pdf_import_keeps_page_sizes_and_returns_preview_without_changing_source(client):
-    # Use the five-page landscape fixture regardless of filesystem iteration order.
-    source = Path(__file__).resolve().parents[1] / 'examples/samples/pdf/2026학년도 정시 주요사항 안내.pdf'
+def test_pdf_import_keeps_page_sizes_and_returns_preview_without_changing_source(client, tmp_path):
+    source = tmp_path / 'office-landscape.pdf'
+    source.write_bytes(landscape_pdf())
     original = source.read_bytes()
     value = extract(client, [(source.name, original)])
     assert value['source'] == 'pdf' and len(value['background_pages']) == 5

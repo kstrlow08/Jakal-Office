@@ -1,7 +1,7 @@
 """Full page editor saves remain versioned, owned and validated."""
 from fastapi.testclient import TestClient
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from jakal_hwpx.namespaces import NS
 from web_tests.test_api import client, raw_document, upload, wait
 

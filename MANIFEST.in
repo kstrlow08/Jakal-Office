@@ -1,15 +1,23 @@
-include LICENSE
-include SECURITY.md
-include THIRD_PARTY_NOTICES.md
-include README.md
-include HWPX_MODULE.md
-include RELEASING.md
-include STABILITY_CONTRACT.md
-include stability_contract.json
-recursive-include docs *.md *.svg
-recursive-include src/jakal_hwpx py.typed
-global-exclude .env .env.local .env.production *.sqlite *.sqlite3 *.sqlite3-* *.pem *.key
-prune .web-data
-prune .web-test-data
-prune uploads
-prune private-uploads
+include LICENSE SECURITY.md THIRD_PARTY_NOTICES.md README.md RELEASING.md
+include Dockerfile .dockerignore pyproject.toml tox.ini compose.yaml compose.local.yaml .env.production.example
+recursive-include server *.py *.mjs
+recursive-include docs *.md
+include web/package.json web/package-lock.json web/index.html web/tsconfig.json web/vite.config.ts
+include web/public/favicon.svg web/public/404.html web/public/sample.hwp web/public/sample.hwpx
+recursive-include web/src *.ts *.tsx *.css
+recursive-include web/studio *.ts *.css *.md *.json
+recursive-include web/scripts *.mjs
+recursive-include web/tests *.mjs
+include web/tests/fixtures/two-sections.hwpx
+recursive-include web/public/fonts *.woff2 *.txt
+recursive-include web/public/licenses *.txt *.md
+recursive-include scripts *.py *.ps1
+recursive-include deploy *.html *.yaml *.ps1 *.sh *.release Caddyfile *.example
+recursive-include desktop *.html *.cs *.py *.ps1 *.json *.manifest *.cmd
+recursive-include web_tests *.py
+prune web/node_modules
+prune web/dist
+prune web/public/studio
+prune build
+prune .artifacts
+global-exclude __pycache__ *.py[cod] .env .env.local .env.production *.sqlite *.sqlite3 *.sqlite3-* *.pem *.key

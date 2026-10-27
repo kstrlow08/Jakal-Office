@@ -2,7 +2,7 @@
 from lxml import etree
 import pytest
 
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from jakal_hwpx.namespaces import NS
 from server.conversion import inspect_converted
 from server.engine import paragraph_text

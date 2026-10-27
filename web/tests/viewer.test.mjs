@@ -55,7 +55,7 @@ test('search text follows painted page content and decodes XML entities', () => 
 globalThis.measureTextWidth = (_font, text) => Array.from(text).reduce((sum, c) => sum + (c.codePointAt(0) > 255 ? 12 : 6), 0);
 initSync({ module: fs.readFileSync(new URL('../node_modules/@rhwp/core/rhwp_bg.wasm', import.meta.url)) });
 
-for (const relative of ['../../examples/samples/hwp/기출킬러양식.hwp', '../../examples/samples/hwpx/math_template_2_formula_fixed.hwpx']) {
+for (const relative of ['../public/sample.hwp', '../public/sample.hwpx']) {
   test(`real renderer opens ${relative.split('/').at(-1)} without changing source bytes`, () => {
     const path = new URL(relative, import.meta.url);
     const raw = fs.readFileSync(path);

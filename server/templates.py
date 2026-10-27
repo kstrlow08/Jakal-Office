@@ -1,5 +1,5 @@
 """Small, original document starters; no desktop automation or third-party assets."""
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from jakal_hwpx.namespaces import NS
 
 TEMPLATES = [

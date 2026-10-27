@@ -1,5 +1,5 @@
 import pytest
-from jakal_hwpx import HwpxDocument
+from server.document_backend import HwpxDocument
 from server.templates import make_template, TEMPLATES
 from server.engine import issues
 from web_tests.test_api import client, wait

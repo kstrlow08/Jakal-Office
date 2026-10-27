@@ -1,19 +1,15 @@
-# HWP document assets
+# Portable Office deployment scripts
 *.sh text eol=lf
 *.cmd text eol=crlf
 *.hwp -text
 *.hwpx -text
 
-# Binary toolchain artifacts
-*.class -text
+# Document, editor and packaged runtime assets
+*.pdf -text
+*.png -text
+*.jpg -text
+*.woff2 -text
+*.wasm -text
 *.dll -text
 *.exe -text
-*.jar -text
-*.jmod -text
-*.jsa -text
-*.lib -text
-*.sym -text
 *.zip -text
-
-# JDK image file without an extension
-tools/jdk-21.0.10+7/lib/modules -text
