@@ -1,169 +1,189 @@
-# jakal-hwpx
+# Jakal Office
 
-`jakal-hwpx` is a Python library for reading, editing, and writing both `HWPX` and `HWP` documents.
+**HWP·HWPX 문서를 열고, 원문 위에서 편집하고, 검증한 수정본을 저장하는 웹 오피스입니다.**
 
-The package exposes three main layers:
+Jakal Office는 문서 읽기부터 본문·서식·표·그림 편집, 저장 버전 관리와 다운로드까지 하나의 작업 공간에서 제공합니다. 현재는 HWP 5와 HWPX 문서 작업을 중심으로 개발하고 있습니다.
 
-- `HancomDocument`: a format-neutral document model for most authoring and conversion work
-- `HwpxDocument`: direct HWPX package and XML editing
-- `HwpDocument`: direct native HWP object and binary editing
+로컬 실행 시 브라우저와 내 컴퓨터의 서버에서 문서를 처리합니다. 편집기, WebAssembly 엔진, 기본 웹폰트는 같은 서버에서 제공하며, 문서를 외부 변환 서비스에 보내지 않습니다.
 
-![Module layers](https://raw.githubusercontent.com/Ahnd6474/jakal-hwpx/main/docs/images/module-layers.svg)
+## 주요 기능
 
-## Installation
+### 원문을 보면서 편집
 
-Requires Python 3.11 or newer.
+- 문서 페이지 위에서 직접 입력하고 텍스트를 선택해 수정합니다.
+- 글꼴·크기·굵게·기울임·밑줄·글자 색과 문단 정렬·줄 간격을 설정합니다.
+- 수식·문자표·하이퍼링크·그림·도형과 머리말·꼬리말·각주 도구를 사용합니다.
+- 연속 스크롤, 확대·축소, 너비 맞춤, 전체 화면과 집중 보기를 지원합니다.
 
-```bash
-python -m pip install --upgrade pip
-python -m pip install jakal-hwpx
-```
+### 개체에 맞는 레이아웃 탭
 
-For local development:
+표·그림·차트를 선택하면 상단 **도구** 오른쪽에 해당 개체의 레이아웃 탭이 나타납니다.
 
-```bash
-python -m pip install -e .[dev]
-```
-
-Package name on PyPI is `jakal-hwpx`. Import path is `jakal_hwpx`.
-
-## Quick start
-
-For most application code, start with `HancomDocument`.
-
-```python
-from jakal_hwpx import HancomDocument
-
-doc = HancomDocument.blank()
-doc.metadata.title = "Quarterly report"
-doc.append_paragraph("Sales summary")
-doc.append_table(
-    rows=2,
-    cols=2,
-    cell_texts=[["Item", "Value"], ["Q1", "120"]],
-)
-
-doc.write_to_hwpx("build/report.hwpx")
-doc.write_to_hwp("build/report.hwp")
-```
-
-Reading an existing document uses the same model:
-
-```python
-from jakal_hwpx import HancomDocument
-
-doc = HancomDocument.open("input.hwp")
-doc.append_paragraph("Review complete")
-doc.save("build/output.hwpx")
-```
-
-## Direct HWPX authoring
-
-Use `HwpxDocument` when you want explicit control over paragraphs, runs, controls, package parts, or validation.
-
-```python
-from jakal_hwpx import HwpxDocument
-
-doc = HwpxDocument.blank()
-doc.append_paragraph("Inline math:")
-doc.append_inline("equ", "x+y", width=3200, height=1800)
-doc.append_inline("text", " = z")
-doc.append_block("equ", "a+b", width=2800, height=1700)
-
-doc.strict_validate()
-doc.save("build/direct.hwpx")
-```
-
-There are now two authoring styles for controls:
-
-- `append_block(kind=..., content=..., **kwargs)`: insert a block-level control
-- `append_inline(kind=..., content=..., **kwargs)`: reuse the target paragraph instead of creating a new one
-
-Examples:
-
-```python
-doc.append("equ", "x+y")
-doc.append_inline("equ", "x+y")
-doc.append_inline("text", " + z")
-doc.append_block("table", [["A", "B"], ["1", "2"]])
-```
-
-Supported type aliases include:
-
-- `text`, `paragraph`
-- `eq`, `equ`, `equation`
-- `pic`, `image`, `picture`
-- `table`, `tbl`
-- `bookmark`, `field`, `hyperlink`
-- `note`, `footnote`, `endnote`
-- `form`, `memo`, `chart`, `ole`, `shape`
-- `autonum`, `newnum`
-- `header`, `footer`
-
-The older explicit APIs still exist and remain the lowest-level stable surface:
-
-- `append_equation()`
-- `append_inline_equation()`
-- `append_picture()`
-- `append_shape()`
-- `append_ole()`
-- `append_table()`
-
-## Choosing the right layer
-
-| Layer | Use it for |
+| 선택한 개체 | 사용할 수 있는 도구 |
 |---|---|
-| `HancomDocument` | format-neutral authoring, conversion, block-level editing |
-| `HwpxDocument` | direct HWPX package editing, XML placement, validation, control surgery |
-| `HwpDocument` | direct native HWP object editing and low-level HWP inspection |
-| `HwpBinaryDocument` | record tree, streams, DocInfo, and section model inspection |
+| 표 | 표·셀 속성, 테두리·배경, 칸 나누기·합치기, 줄·칸 추가 |
+| 그림 | 크기·배치·여백, 회전, 좌우·상하 뒤집기 |
+| 차트 | 크기·배치, 차트 데이터 편집 |
 
-Additional public API documentation lives in [HWPX_MODULE.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/HWPX_MODULE.md).
+표의 칸 안에는 **독립된 표를 추가로 삽입**할 수 있습니다. 바깥 칸을 나누는 기능과 구분되며, 안쪽 표의 너비를 정하고 상위 칸으로 이동할 수 있습니다. 선택 상태와 개체 종류에 따라 사용할 수 있는 도구가 달라집니다.
 
-## Validation and release checks
+### 작업에 맞는 문서 보기
 
-Basic test run:
+- **문서 편집:** 원문 배치 위에서 내용과 서식을 직접 편집합니다.
+- **원문 보기:** 저장된 문서를 읽고, 검색하고, 업로드 원본과 비교합니다.
+- **텍스트 편집:** 본문을 이어서 읽거나 문단별로 확인하며 수정합니다.
+- **표·그래프·그림 보기:** 문서 안의 개체를 모아 보고 원문 위치로 이동합니다.
+- **작업 도구:** `Ctrl+Shift+K`로 명령을 검색하고 실행합니다.
 
-```bash
-python -m pytest tests/test_document_model.py tests/test_hancom_document.py -q
-```
+쪽 양식·템플릿, 찾기·바꾸기, 보호 문구와 문서별 편집 규칙도 제공합니다.
 
-Packaging and release validation:
+### 저장·검증·복원
 
-```bash
-python -m build
-python -m twine check dist/*
-python scripts/check_release.py --profile ci
-```
+- 수정 내용은 원본을 덮어쓰지 않고 **새 버전**으로 저장합니다.
+- 실행 취소·다시 실행과 브라우저 임시보관으로 편집을 이어갈 수 있습니다.
+- 버전 기록에서 저장된 내용을 비교하고 이전 버전을 복원합니다.
+- 다운로드 전에 현재 버전의 구조와 참조를 검증합니다.
+- 변환·내보내기 과정에서 엔진이 내용 손실을 보고하면 처리를 중단합니다.
 
-On the Windows release machine, run the full Hancom gate as well:
+외부 도구와 연결하는 MCP 기능도 제공하며, 전달받은 수정 제안을 검토하고 선택해 적용할 수 있습니다.
+
+## 빠르게 시작하기
+
+### 준비 사항
+
+- Python **3.11 이상**
+- Node.js **22.6 이상**과 npm
+- Git: 최초 빌드에서 고정된 편집기 소스를 준비할 때 사용
+
+소스를 빌드하려면 최초 실행 시 패키지와 편집기 소스를 내려받을 인터넷 연결이 필요합니다. HWP 변환에는 실행 중에도 Node.js가 필요합니다.
+
+### Windows
+
+저장소를 내려받은 뒤 루트 폴더에서 PowerShell로 실행합니다. 빠른 실행 스크립트는 가상환경을 만들 때 `py -3.11`을 사용합니다.
 
 ```powershell
-python scripts/check_release.py --profile release
+.\scripts\start_web.ps1 -Install
 ```
 
-## Documentation
+브라우저에서 **http://127.0.0.1:8000**을 엽니다.
 
-### Local web workspace
+이후에는 다음 명령으로 실행합니다.
 
-An optional React/FastAPI app supports native HWP 5 and HWPX upload, paragraph and
-table-cell editing, validation, and same-format download. Advanced settings add
-protected terms, batch replacement, task notes, and strict validation.
-Documents open in a read-only page viewer with equations and original layout;
-tables and charts/images have separate views. The browser renderer may differ
-from Hancom for unsupported objects or fonts.
-On Windows, run `scripts/start_web.ps1 -Install`, then open
-`http://127.0.0.1:8000`. See [docs/web-workspace.md](docs/web-workspace.md) for setup,
-supported operations, storage, and deployment limits.
+```powershell
+.\scripts\start_web.ps1
+```
 
-- [HWPX_MODULE.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/HWPX_MODULE.md): public module and API index
-- [docs/README.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/docs/README.md): docs directory index
-- [docs/hancom-document.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/docs/hancom-document.md): `HancomDocument`
-- [docs/hwpx-document.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/docs/hwpx-document.md): `HwpxDocument`
-- [docs/hwp-document.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/docs/hwp-document.md): `HwpDocument`
-- [docs/bridge-and-binary.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/docs/bridge-and-binary.md): bridge and binary internals
-- [RELEASING.md](https://github.com/Ahnd6474/jakal-hwpx/blob/main/RELEASING.md): release checklist
+프론트엔드 코드를 변경한 뒤에는 다시 빌드합니다.
 
-## License
+```powershell
+.\scripts\start_web.ps1 -Rebuild
+```
 
-Released under the [MIT License](https://github.com/Ahnd6474/jakal-hwpx/blob/main/LICENSE).
+### 수동 설치·실행
+
+Windows, macOS, Linux에서 저장소 루트를 기준으로 실행합니다.
+
+```bash
+python -m venv .venv
+```
+
+가상환경을 활성화합니다.
+
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+```
+
+```bash
+# macOS / Linux
+source .venv/bin/activate
+```
+
+의존성을 설치하고 화면을 빌드한 뒤 서버를 시작합니다.
+
+```bash
+python -m pip install -e ".[web]"
+cd web
+npm ci
+npm run build
+cd ..
+python -m server
+```
+
+접속 주소는 **http://127.0.0.1:8000**이며, 서버를 종료하려면 터미널에서 `Ctrl+C`를 누릅니다.
+
+## 기본 사용 흐름
+
+1. **파일 열기**에서 `.hwp` 또는 `.hwpx` 파일을 선택하거나, **새 문서**로 시작합니다.
+2. 문서 위를 클릭해 내용을 수정합니다. 표·그림·차트는 선택 후 상단 레이아웃 탭에서 편집합니다.
+3. 필요한 명령은 상단 메뉴 또는 **작업 도구**에서 찾습니다.
+4. **수정 저장** 또는 `Ctrl+S`로 새 버전을 저장합니다.
+5. **저장·검증 후 다운로드** 또는 **검증 후 다운로드**로 현재 상태에 필요한 단계를 진행합니다.
+6. 이전 저장 내용이 필요하면 **보기 및 도구 → 버전 기록**에서 확인합니다.
+
+브라우저 임시보관은 서버 저장을 대신하지 않습니다. 작업을 마칠 때 수정본을 저장하고 다운로드하세요.
+
+## 지원 형식과 범위
+
+| 형식 | 처리 방식 |
+|---|---|
+| HWPX | 원문 편집기에 불러와 편집·저장·검증하고 HWPX로 다운로드합니다. |
+| HWP 5 | 업로드 원본을 별도로 보관하고 HWPX로 변환한 뒤 편집합니다. 새로 업로드한 HWP의 수정본은 HWPX로 다운로드합니다. |
+
+현재 웹 편집기는 한글 프로그램의 모든 기능이나 동일한 인쇄 배치를 보장하지 않습니다. 글꼴과 일부 개체·조판에 따라 표시 차이가 생길 수 있으므로 복잡한 문서의 최종 인쇄 결과는 한글에서도 확인하세요.
+
+HWP 3, 암호화 문서와 배포용 문서는 지원하지 않습니다. 기본 업로드 한도는 파일당 **20MB**입니다. 보기별 편집 가능 범위와 변환 제한은 [웹 워크스페이스 문서](docs/web-workspace.md)를 참고하세요.
+
+## 문서 보관과 배포
+
+로컬 실행의 기본 저장 위치는 저장소의 `.web-data`이며, `JAKAL_DATA_DIR`로 변경할 수 있습니다. 문서는 업로드 후 **24시간** 동안 보관합니다. 만료된 파일의 디스크 정리는 서버가 실행 중일 때 수행합니다.
+
+문서 접근 권한은 브라우저 세션을 기준으로 관리합니다. 서버에 배포한 경우 파일은 해당 서버에서 처리·보관되므로 배포 환경의 저장소와 접근 정책도 함께 설정해야 합니다.
+
+기본 서버는 `127.0.0.1:8000`에서 실행됩니다. 공개 서비스는 운영 모드와 전용 HTTPS 도메인으로 구성하며, 현재 저장소·작업 큐는 **단일 호스트·단일 API 프로세스**를 기준으로 설계되어 있습니다.
+
+- [설치형·서버 패키지 실행 안내](deploy/guide.html)
+- [웹 실행 방법과 환경 변수](docs/web-workspace.md)
+- [문서 보관·세션·공개 배포 정책](docs/document-privacy.md)
+
+## 개발
+
+Jakal Office의 화면은 **React·TypeScript·Vite**, API는 **Python·FastAPI**, 문서·작업 기록은 **SQLite**를 사용합니다. 원문 편집과 렌더링에는 `rhwp`의 WebAssembly 엔진을 사용합니다.
+
+| 경로 | 역할 |
+|---|---|
+| `web/src/` | 문서 목록, 편집 화면, 보기 전환과 작업 도구 |
+| `web/studio/` | 편집기 통합, 개체 레이아웃 탭과 입력·파일 작업 연결 |
+| `server/` | 업로드, 변환, 저장, 검증, 버전·세션 관리와 작업 실행 |
+| `src/jakal_hwpx/` | HWP·HWPX 문서 처리 라이브러리 |
+| `web/tests/`, `web_tests/` | 프론트엔드 및 웹 API·저장·배포 검사 |
+| `docs/` | 기능, 운영 정책과 개발 문서 |
+
+화면 개발 시 API 서버를 실행한 상태에서 `web` 폴더의 `npm run dev`를 사용합니다. Vite는 `/api` 요청을 로컬 API 서버로 전달합니다.
+
+검증은 빌드를 준비한 뒤 실행합니다.
+
+```bash
+python -m pip install -e ".[web,web-test]"
+cd web
+npm ci
+npm run build
+npm test
+cd ..
+python -m pytest web_tests -q
+```
+
+문서 처리 라이브러리의 배포 패키지명은 `jakal-hwpx`, Python import 경로는 `jakal_hwpx`입니다. API를 직접 사용하는 개발자는 [모듈 안내](HWPX_MODULE.md)와 [API 문서 목록](docs/README.md)을 참고하세요.
+
+## 더 알아보기
+
+- [원문 서식 편집기](docs/page-editor.md)
+- [쪽 양식·템플릿](docs/page-layout-templates.md)
+- [버전 기록과 복원](docs/version-history.md)
+- [저장·작업 실행과 복구](docs/backend-reliability.md)
+- [문서 왕복 검증 기록](docs/qa-roundtrip.md)
+- [릴리스 안내](RELEASING.md)
+
+## 라이선스
+
+프로젝트의 자체 소스 코드는 [MIT License](LICENSE)로 배포합니다. 편집 엔진, 글꼴, 의존성과 예제 문서에는 별도 라이선스 또는 권리가 적용될 수 있으며, [서드파티 안내](THIRD_PARTY_NOTICES.md)를 함께 확인하세요.
