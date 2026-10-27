@@ -16,6 +16,7 @@ from lxml import etree
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
 SAMPLE_CORPUS_DIR = REPO_ROOT / "examples" / "samples" / "hwpx"
+HWP_COLLECTION_DIR = REPO_ROOT / "hwp_collection"
 
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
@@ -74,6 +75,7 @@ def sample_hwpx_path(valid_hwpx_files: list[Path]) -> Path:
 
 
 @pytest.fixture(scope="session")
+
 def hwp_donor_collection(_workspace_tmp_root: Path) -> Path:
     # Tests must work in a clean clone without the ignored, private corpus.
     root = _workspace_tmp_root / "donor-collection"

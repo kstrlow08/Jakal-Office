@@ -11,6 +11,7 @@ from jakal_hwpx import (
 )
 
 
+
 def test_scan_hwp_collection_finds_legacy_hwp_donors(hwp_donor_collection: Path) -> None:
     donors = scan_hwp_collection(hwp_donor_collection)
 
@@ -19,6 +20,7 @@ def test_scan_hwp_collection_finds_legacy_hwp_donors(hwp_donor_collection: Path)
     assert any(item.has_table for item in donors)
     assert any(item.has_picture for item in donors)
     assert any(item.has_hyperlink for item in donors)
+
 
 
 def test_find_best_donors_pick_expected_feature_rich_documents(hwp_donor_collection: Path) -> None:
