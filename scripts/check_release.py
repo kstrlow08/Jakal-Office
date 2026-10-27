@@ -38,6 +38,33 @@ from jakal_hwpx._stability_lab import run_stability_matrix, write_stability_repo
 
 REQUIRED_WHEEL_PATTERNS = (
     "jakal_hwpx/__init__.py",
+    "jakal_hwpx/_hancom_models.py",
+    "jakal_hwpx/_hancom_styles.py",
+    "jakal_hwpx/_hancom_from_hwp.py",
+    "jakal_hwpx/_hancom_from_hwpx.py",
+    "jakal_hwpx/_hancom_to_hwp.py",
+    "jakal_hwpx/_hancom_to_hwpx.py",
+    "jakal_hwpx/_hwp_constants.py",
+    "jakal_hwpx/_hwp_graphic_payloads.py",
+    "jakal_hwpx/_hwp_objects.py",
+    "jakal_hwpx/_hwp_page_payloads.py",
+    "jakal_hwpx/_hwp_record_tree.py",
+    "jakal_hwpx/_hwp_shape_objects.py",
+    "jakal_hwpx/_hwp_table_objects.py",
+    "jakal_hwpx/_hwp_object_payloads.py",
+    "jakal_hwpx/_hwp_payload_codecs.py",
+    "jakal_hwpx/_hwpx_archive.py",
+    "jakal_hwpx/_hwpx_common.py",
+    "jakal_hwpx/_hwpx_document_controls.py",
+    "jakal_hwpx/_hwpx_document_fields.py",
+    "jakal_hwpx/_hwpx_document_graphics.py",
+    "jakal_hwpx/_hwpx_element_helpers.py",
+    "jakal_hwpx/_hwpx_chart_xml.py",
+    "jakal_hwpx/_hwpx_factory.py",
+    "jakal_hwpx/_hwpx_validation.py",
+    "jakal_hwpx/_hwpx2py_authoring.py",
+    "jakal_hwpx/_hwpx2py_macro.py",
+    "jakal_hwpx/_hwpx2py_semantic.py",
     "jakal_hwpx/document.py",
     "jakal_hwpx/elements.py",
     "jakal_hwpx/parts.py",
@@ -169,6 +196,11 @@ def _run_pytest(output_dir: Path, *, temp_root: Path) -> dict[str, Any]:
     )
     _write_text(output_dir / "pytest.stdout.log", completed.stdout)
     _write_text(output_dir / "pytest.stderr.log", completed.stderr)
+    if completed.returncode != 0:
+        if completed.stdout:
+            print(completed.stdout, end="" if completed.stdout.endswith("\n") else "\n")
+        if completed.stderr:
+            print(completed.stderr, end="" if completed.stderr.endswith("\n") else "\n", file=sys.stderr)
     detail = completed.stderr.strip() or completed.stdout.strip()
     return {
         "command": command,
