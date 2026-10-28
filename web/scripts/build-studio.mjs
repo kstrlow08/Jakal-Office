@@ -49,6 +49,8 @@ await build({
     '@jakal/image-tools': resolve(web, 'studio/image-tools.ts'),
     '@jakal/font-catalog': resolve(web, 'studio/font-catalog.ts'),
     '@jakal/export-compat': resolve(web, 'studio/export-compat.ts'),
+    '@jakal/ai-target': resolve(web, 'studio/ai-target.ts'),
+    '@jakal/ribbon': resolve(web, 'studio/ribbon.ts'),
   } },
   plugins: [{
     name: 'jakal-studio-host', enforce: 'pre',
