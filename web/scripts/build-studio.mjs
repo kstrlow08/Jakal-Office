@@ -39,6 +39,7 @@ await build({
     '@jakal/input-profile': resolve(web, 'studio/input-profile.ts'),
     '@jakal/font-cache': resolve(web, 'studio/font-cache.ts'),
     '@jakal/frame-task': resolve(web, 'studio/frame-task.ts'),
+    '@jakal/load-progress': resolve(web, 'studio/load-progress.ts'),
     '@jakal/block-insertion': resolve(web, 'studio/block-insertion.ts'),
     '@jakal/character-dialog': resolve(web, 'studio/character-dialog.ts'),
     '@jakal/file-actions': resolve(web, 'studio/file-actions.ts'),
@@ -99,6 +100,11 @@ await build({
       }
       if (id.replaceAll('\\', '/').endsWith('/rhwp-studio/src/main.ts')) {
         code = code.replaceAll('\r\n', '\n');
+        const progress = '  await waitForNextPaint();\n}';
+        const progressAt = code.indexOf('async function updateLoadProgress(');
+        if (progressAt < 0 || !code.slice(progressAt).includes(progress)) throw new Error('Pinned document progress changed');
+        code = code.slice(0, progressAt) + code.slice(progressAt).replace(progress, '  await jakalLoadProgress(percent, label, sbMessage());\n}');
+        code = "import { createLoadProgress } from '@jakal/load-progress';\nconst jakalLoadProgress = createLoadProgress();\n" + code;
         const schedule = 'function autosaveScheduleFromUserSettings(): AutosaveScheduleSettings {';
         if (!code.includes(schedule)) throw new Error('Pinned autosave settings changed');
         code = code.replace(schedule, `${schedule}

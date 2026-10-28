@@ -53,7 +53,7 @@ export const ribbonTabs: Record<string, Group[]> = {
     { items: [['table:block-formula', '계산식'], ['table:block-sum', '블록 합계'], ['table:block-avg', '블록 평균'], ['table:block-product', '블록 곱'], ['table:thousand-sep', '천 단위 쉼표'], ['table:decimal-add', '자릿점 넣기'], ['table:decimal-remove', '자릿점 빼기']] },
   ],
   tool: [
-    { items: [['tool:options', '환경 설정'], ['view:office-fonts', '글꼴 추가'], ['jakal:workbench', '작업 도구 찾기', 'icon-find']] },
+    { items: [['tool:options', '환경 설정'], ['view:office-fonts', '글꼴 추가'], ['jakal:workbench', '도구 찾기', 'icon-find']] },
   ],
 };
 

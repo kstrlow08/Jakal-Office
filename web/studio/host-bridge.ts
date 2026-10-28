@@ -17,7 +17,7 @@ installImageTools(registry);
 installOfficeFonts(registry);
 document.addEventListener('jakal-font-loaded', () => { canvasView?.refreshPages(); });
 if (jakalHost) void initPromise.then(() => installObjectLayout(registry, dispatcher, eventBus, getContext, () => inputHandler, wasm));
-if (jakalHost) registry.register({ id: 'jakal:workbench', label: '작업 도구 찾기', canExecute: context => context.hasDocument, execute: () => jakalPost('workbench') });
+if (jakalHost) registry.register({ id: 'jakal:workbench', label: '도구 찾기', canExecute: context => context.hasDocument, execute: () => jakalPost('workbench') });
 // After the object layout, so the contextual tab row keeps its place after 도구.
 if (jakalHost) void initPromise.then(() => installRibbon(registry, dispatcher, eventBus));
 if (jakalHost) registry.register({

@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.concurrency import run_in_threadpool
 from .static import WebStaticFiles
+from .compression import ApiCompression
 from .http_policy import response_headers
 
 from .schemas import CommandRevisionRequest, CopyRequest, RenameRequest, EditRequest, RevisionRequest, RestoreRequest, SettingsRequest, TemplateRequest, PageLayoutRequest, PageLayoutDocumentRequest
@@ -104,12 +105,20 @@ def create_app(data_dir: Path | None = None, *, run_worker: bool = True) -> Fast
     app.state.sessions = sessions
     app.state.connections = connections
     app.add_middleware(BodyLimit)
+    app.add_middleware(ApiCompression)
 
     def security_headers(path):
         headers = response_headers(path)
         if policy.production:
             headers['Strict-Transport-Security'] = 'max-age=31536000'
         return headers
+
+    def apply_headers(response, headers):
+        for name, value in headers.items():
+            if name.lower() == 'vary':
+                response.headers.add_vary_header(value)
+            else:
+                response.headers[name] = value
 
     @app.exception_handler(RequestValidationError)
     async def invalid_input(request: Request, exc: RequestValidationError):
@@ -156,14 +165,14 @@ def create_app(data_dir: Path | None = None, *, run_worker: bool = True) -> Fast
             except WorkspaceError as error:
                 return JSONResponse({'detail': str(error), 'code': error.code}, status_code=error.status, headers=headers)
             response = await call_next(request)
-            response.headers.update(headers)
+            apply_headers(response, headers)
             return response
         secure = policy.production or request.url.scheme == 'https' or os.environ.get('JAKAL_COOKIE_SECURE') == '1'
         cookie_name = SECURE_COOKIE if secure else COOKIE
         public_asset = not private or request.url.path in {'/api/health', '/api/templates'}
         if public_asset:
             response = await call_next(request)
-            response.headers.update(headers)
+            apply_headers(response, headers)
             return response
         credentials = [part.strip().split('=', 1)[1].strip() for value in request.headers.getlist('cookie')
             for part in value.split(';') if '=' in part and part.strip().split('=', 1)[0].strip() == cookie_name]
@@ -189,7 +198,7 @@ def create_app(data_dir: Path | None = None, *, run_worker: bool = True) -> Fast
         if not getattr(request.state, 'ended_session', False):
             response.set_cookie(cookie_name, token, httponly=True, samesite="strict", secure=secure, max_age=store.ttl, path='/')
         response.headers['X-Jakal-Workspace'] = workspace
-        response.headers.update(headers)
+        apply_headers(response, headers)
         return response
 
     def owned(identifier: str, request: Request):

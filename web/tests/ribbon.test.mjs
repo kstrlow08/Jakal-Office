@@ -10,8 +10,10 @@ const menus = ['file', 'edit', 'view', 'insert', 'format', 'page', 'table', 'too
 function fixture(t, { storage = new Map(), commands = [], saved } = {}) {
   const html = `<header id="studio-header"><nav id="menu-bar">${menus.map(name => `<div class="menu-item" data-menu="${name}"><span class="menu-title">${name}</span><div class="menu-dropdown"></div></div>`).join('')}<button id="toolbox-basic-toggle"></button></nav><div id="icon-toolbar"><div class="tb-group tb-headerfooter-group" hidden></div></div><div id="style-bar"></div></header>`;
   const dom = new JSDOM(html);
-  const previous = globalThis.document; globalThis.document = dom.window.document;
-  t.after(() => { dom.window.close(); if (previous) globalThis.document = previous; else delete globalThis.document; });
+  const previous = globalThis.document, previousMouseEvent = globalThis.MouseEvent;
+  globalThis.document = dom.window.document; globalThis.MouseEvent = dom.window.MouseEvent;
+  t.after(() => { dom.window.close(); if (previous) globalThis.document = previous; else delete globalThis.document;
+    if (previousMouseEvent) globalThis.MouseEvent = previousMouseEvent; else delete globalThis.MouseEvent; });
   const definitions = new Map(commands.map(id => [id, { id }]));
   const enabled = new Set(commands);
   const calls = [], listeners = new Map(), opened = [];
