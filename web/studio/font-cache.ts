@@ -1,5 +1,6 @@
 // Font rules and loaded faces cannot change during a synchronous paint. Cache
 // only inside that scope; a later paint always resolves against current fonts.
+import { officeCanvasFont } from './font-catalog.ts';
 type Scope = { owner: object | null; values: Map<string, string> };
 let current: Scope | null = null;
 const LIMIT = 1024;
@@ -13,6 +14,8 @@ export function withFontResolutionCache<T>(owner: object | null, operation: () =
 }
 
 export function resolveCachedFont(font: string, resolve: () => string): string {
+  const exact = officeCanvasFont(font);
+  if (exact) return exact;
   if (!current) return resolve();
   const cached = current.values.get(font);
   if (cached !== undefined) return cached;

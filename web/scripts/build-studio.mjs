@@ -45,10 +45,43 @@ await build({
     '@jakal/table-tools': resolve(web, 'studio/table-tools.ts'),
     '@jakal/object-layout': resolve(web, 'studio/object-layout.ts'),
     '@jakal/nested-table': resolve(web, 'studio/nested-table.ts'),
+    '@jakal/table-drag': resolve(web, 'studio/table-drag.ts'),
+    '@jakal/image-tools': resolve(web, 'studio/image-tools.ts'),
+    '@jakal/font-catalog': resolve(web, 'studio/font-catalog.ts'),
+    '@jakal/export-compat': resolve(web, 'studio/export-compat.ts'),
   } },
   plugins: [{
     name: 'jakal-studio-host', enforce: 'pre',
     transform(code, id) {
+      const path = id.replaceAll('\\', '/');
+      if (path.endsWith('/engine/input-handler.ts')) {
+        const start = code.indexOf('private hitTestCellRowCol(');
+        const target = 'const ctx = this.cursor.getCellTableContext();';
+        const at = code.indexOf(target, start);
+        if (start < 0 || at < 0) throw new Error('Pinned table drag context changed');
+        return `import { dragTableContext } from '@jakal/table-drag';\n` + code.slice(0,at) + code.slice(at).replace(target,'const ctx = dragTableContext(this.cursor);');
+      }
+      if (path.endsWith('/engine/input-handler-mouse.ts')) {
+        const target = 'this.cursor.setCellSelectionFocus?.(cellRC.row, cellRC.col);\n  this.updateCellSelection();';
+        code = code.replaceAll('\r\n', '\n');
+        if (!code.includes(target)) throw new Error('Pinned table drag update changed');
+        return code.replace(target, target + "\n  this.eventBus.emit('command-state-changed');");
+      }
+      if (path.endsWith('/core/font-loader.ts')) {
+        const target = 'const FONT_LIST: readonly FontEntry[] = FONT_RULE_WEBFONT_ENTRIES;';
+        if (!code.includes(target)) throw new Error('Pinned font catalogue changed');
+        return `import { OFFICE_FONT_ENTRIES } from '@jakal/font-catalog';\n` + code.replace(target,'const FONT_LIST: readonly FontEntry[] = [...FONT_RULE_WEBFONT_ENTRIES, ...OFFICE_FONT_ENTRIES];');
+      }
+      if (path.endsWith('/ui/toolbar.ts')) {
+        const target = "const BASE_FONTS = ['함초롬바탕', '함초롬돋움', '맑은 고딕', '나눔고딕', '바탕', '돋움', '궁서'];";
+        if (!code.includes(target)) throw new Error('Pinned toolbar font list changed');
+        return `import { OFFICE_FONT_NAMES } from '@jakal/font-catalog';\n` + code.replace(target,target.replace("'궁서']", "'궁서', ...OFFICE_FONT_NAMES]")).replace("this.fontMenuCategory = this.fontMenuDocumentFonts.length > 0 ? 'document' : 'current';", "this.fontMenuCategory = 'all';");
+      }
+      if (path.endsWith('/ui/symbols-dialog.ts')) {
+        const target = 'new InsertTextCommand(pos, this.selectedChar)';
+        if (!code.includes(target)) throw new Error('Pinned symbol insertion changed');
+        return code.replace(target,'new InsertTextCommand(pos, this.selectedChar, Date.now(), ih.getPendingCharShape())');
+      }
       if (id.replaceAll('\\', '/').endsWith('/core/mutation-method-registry.ts')) {
         const methods = "'createTable', 'createTableEx',";
         if (!code.includes(methods)) throw new Error('Pinned table mutation registry changed');
@@ -81,6 +114,7 @@ await build({
         return code + '\n' + bridge;
       }
       if (id.replaceAll('\\', '/').endsWith('/core/wasm-bridge.ts')) {
+        code = code.replaceAll('\r\n', '\n');
         const tableMethod = '  createTableEx(options: {';
         if (!code.includes(tableMethod)) throw new Error('Pinned table creation bridge changed');
         code = `import { insertNestedTable, editNestedTable, type TablePosition, type TableOptions, type StructureOptions } from '@jakal/nested-table';\n` + code.replace(tableMethod, `  editNestedTable(position: TablePosition, operation: string, options?: StructureOptions): TablePosition {
@@ -96,9 +130,16 @@ ${tableMethod}`);
         const fontSetter = 'scopedHostCanvasFont(String(value)) ?? substituteCssFontFamily(String(value))';
         if (!code.includes(fontSetter)) throw new Error('Pinned Canvas font setter changed');
         code = `import { resolveCachedFont } from '@jakal/font-cache';\n` + code.replace(fontSetter, `resolveCachedFont(String(value), () => ${fontSetter})`);
+        const hwpReport = 'return runReportedExport(\n      () => exportFn.call(this.doc) as WasmDocumentExport,\n    );';
+        const hwpStart = code.indexOf('  exportHwpWithReport(): DocumentExportArtifact {');
+        const hwpAt = code.indexOf(hwpReport,hwpStart);
+        if (hwpStart<0 || hwpAt<0) throw new Error('Pinned HWP export report changed');
+        code=code.slice(0,hwpAt)+code.slice(hwpAt).replace(hwpReport,'return exportCompatibleHwp(this.doc, HwpDocument, runReportedExport);');
+        code=code.replace('return this.doc.exportHwp();','return this.exportHwpWithReport().bytes;');
+        code = `import { finalizeHwpx, exportCompatibleHwp } from '@jakal/export-compat';\n` + code;
         return code.replace('return this.doc.exportHwpx();', `const artifact = this.exportHwpxWithReport();
           if (artifact.contentLoss.count > 0) throw new Error('저장 과정에서 지원하지 않는 개체가 발견되었습니다. 원본을 유지하고 저장을 중단했습니다.');
-          return artifact.bytes;`);
+          return finalizeHwpx(artifact.bytes);`);
       }
       if (id.replaceAll('\\', '/').endsWith('/core/host-canvas-fonts.ts')) {
         const scope = 'try { return operation(); } finally { currentSession = previous; }';
@@ -137,6 +178,7 @@ for (const name of ['theme-init.js', 'locale-init.js', 'favicon.ico', 'icons', '
   await cp(resolve(source, 'rhwp-studio/public', name), resolve(out, name), { recursive: true });
 }
 await cp(resolve(source, 'assets/fonts'), resolve(out, 'fonts'), { recursive: true });
+await cp(resolve(web, 'public/fonts/editor'), resolve(out, 'fonts/jakal'), { recursive: true });
 await cp(resolve(source, 'LICENSE'), resolve(out, 'LICENSE-rhwp.txt'));
 await writeFile(resolve(out, 'jakal.css'), css);
 await compressAssets(out);

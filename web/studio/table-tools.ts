@@ -85,6 +85,10 @@ export function showTableDialog(mode: boolean | 'split', apply: (rows: number, c
 }
 
 export function installTableTools(registry: CommandRegistry, getInput: () => Input | null) {
+  registry.register({id:'table:select-cells',label:'셀 선택 (F5)',canExecute:context=>context.inTable,execute(){
+    const input=getInput() as any;if(!input?.cursor.enterCellSelectionMode())return;
+    input.cursor.clearSelection();input.caret.hide();input.selectionRenderer.clear();input.updateCellSelection();input.eventBus.emit('command-state-changed');input.focus();
+  }});
   const original = registry.get('table:create');
   if (!original) throw new Error('표 만들기 명령을 찾을 수 없습니다.');
   const canCreate = (context: EditorContext) => {

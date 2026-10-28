@@ -2,7 +2,7 @@ import { hostFileActions } from './file-command-policy.mjs';
 
 type Definition = { id: string; label: string; canExecute?: (context: any) => boolean; execute: (...args: any[]) => unknown; [key: string]: unknown };
 type Registry = { get: (id: string) => Definition | undefined; register: (definition: Definition) => void };
-export type HostFileAction = 'new' | 'open' | 'documents' | 'save' | 'copy' | 'download' | 'history';
+export type HostFileAction = 'new' | 'open' | 'documents' | 'save' | 'copy' | 'download' | 'download-hwp' | 'history';
 
 export function installHostFileActions(registry: Registry, post: (action: HostFileAction) => void) {
   for (const [id, action] of Object.entries(hostFileActions)) {
@@ -12,5 +12,8 @@ export function installHostFileActions(registry: Registry, post: (action: HostFi
   // This workspace validates and downloads HWPX; a local HWP save must not
   // silently acknowledge or clear the host's unsaved revision.
   const hwpSave = registry.get('file:save-as-hwp');
-  if (hwpSave) registry.register({ ...hwpSave, canExecute: () => false });
+  if (hwpSave) registry.register({ ...hwpSave,
+    canExecute: context => typeof location !== 'undefined' && new URLSearchParams(location.search).get('hwp') === '1' && !!context?.hasDocument,
+    execute: () => post('download-hwp'),
+  });
 }

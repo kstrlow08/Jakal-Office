@@ -9,7 +9,8 @@ recursive-include web/studio *.ts *.css *.md *.json
 recursive-include web/scripts *.mjs
 recursive-include web/tests *.mjs
 include web/tests/fixtures/two-sections.hwpx
-recursive-include web/public/fonts *.woff2 *.txt
+include web/tests/fixtures/notes-objects.hwpx
+recursive-include web/public/fonts *.woff2 *.ttf *.txt *.json
 recursive-include web/public/licenses *.txt *.md
 recursive-include scripts *.py *.ps1
 recursive-include deploy *.html *.yaml *.ps1 *.sh *.release Caddyfile *.example

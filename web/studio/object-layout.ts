@@ -38,12 +38,13 @@ export function resolveLayoutSelection(context: EditorContext, input: Input | nu
 function groupsFor(selection: Selection): Group[] {
   if (selection.kind === 'table') return [
     { label: '속성', actions: [['table:cell-props', '표·셀 속성'], ['table:border-each', '테두리·배경']] },
-    { label: '칸 편집', actions: [['table:cell-split', '칸 나누기'], ['table:cell-merge', '칸 합치기']] },
+    { label: '칸 선택·편집', actions: [['table:select-cells', '셀 선택 (F5)'], ['table:cell-split', '칸 나누기'], ['table:cell-merge', '칸 합치기']] },
     { label: '줄·칸 추가', actions: [['table:insert-row-above', '위에 줄'], ['table:insert-row-below', '아래에 줄'], ['table:insert-col-left', '왼쪽에 칸'], ['table:insert-col-right', '오른쪽에 칸']] },
     { label: '표 안에 표', actions: [['table:create-nested', '표 안에 새 표 넣기'], ['table:parent-cell', '상위 칸으로']] },
   ];
   if (selection.multiple) return [{ label: '개체 묶기', actions: [['insert:group-shapes', '개체 묶기']] }];
   const groups: Group[] = [{ label: '크기·위치·배치', actions: [['insert:picture-props', selection.kind === 'chart' ? '차트 크기·배치' : '크기·배치·여백']] }];
+  if (selection.type === 'image') groups.unshift({label:'본문 배치',actions:[['insert:picture-inline','글자처럼 취급'],['insert:picture-floating','본문과 어울리기']]});
   if (selection.kind === 'chart') groups.push({ label: '차트', actions: [['insert:chart-data-edit', '차트 데이터 편집']] });
   if (selection.type === 'image' || selection.type === 'shape' || selection.type === 'line') {
     groups.push({ label: '회전·대칭', actions: [['insert:rotate-ccw', '왼쪽 90°'], ['insert:rotate-cw', '오른쪽 90°'], ['insert:flip-horz', '좌우 뒤집기'], ['insert:flip-vert', '상하 뒤집기']] });
@@ -91,7 +92,7 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
     }
     const hint = document.createElement('p'); hint.className = 'jakal-layout-hint';
     hint.textContent = !selection ? '문서에서 표의 칸이나 테두리, 그림, 차트를 클릭하세요. 선택한 개체의 레이아웃 도구가 여기에 나타납니다.'
-      : selection.kind === 'table' ? (selection.nested ? '중첩 표: 칸 나누기·합치기와 줄·칸 추가를 사용할 수 있습니다.' : '칸 합치기: 합칠 칸을 먼저 선택하세요.')
+      : selection.kind === 'table' ? '다른 셀까지 드래그하면 여러 칸을 선택합니다. 같은 셀 안에서는 글자를 선택합니다. F5로 셀 선택을 시작할 수도 있습니다.'
       : selection.kind === 'chart' ? '크기·위치·본문 배치는 속성에서, 계열과 값은 데이터 편집에서 변경합니다.'
       : selection.multiple ? '여러 개체가 선택되어 있습니다. 개별 크기와 배치를 바꾸려면 하나만 선택하세요.'
       : '속성에서 크기, 위치, 본문과의 배치 및 여백을 설정하세요.';
@@ -119,7 +120,7 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
     tab.setAttribute('aria-selected', String(expanded));
     tab.setAttribute('aria-expanded', String(expanded));
     tab.disabled = !context.hasDocument;
-    collapse.textContent = expanded ? '접기' : '펼치기'; collapse.setAttribute('aria-label', `레이아웃 도구 ${expanded ? '접기' : '펼치기'}`);
+    collapse.textContent = expanded ? '기본 서식' : '레이아웃'; collapse.setAttribute('aria-label', expanded ? '글자·문단 서식 도구로 돌아가기' : '레이아웃 도구 펼치기');
     for (const [id, button] of buttons) {
       const command = registry.get(id);
       // These upstream dialogs accept only a root table address. Do not apply

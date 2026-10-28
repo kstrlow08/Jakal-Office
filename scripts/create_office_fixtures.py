@@ -13,6 +13,12 @@ def main():
     destination.parent.mkdir(parents=True, exist_ok=True)
     document.save(destination)
     print(destination)
+    document = HwpxDocument.blank()
+    document.set_paragraph_text(0, 0, '각주 본문')
+    document.append_footnote('각주 내용 가나다')
+    document.append_endnote('미주 내용 가나다')
+    document.append_shape(kind='rect', text='더 안성민', treat_as_char=False, horz_rel_to='PAPER', vert_rel_to='PAPER', horz_offset=2200, vert_offset=1700, width=12000, height=7600)
+    document.save(destination.with_name('notes-objects.hwpx'))
 
 
 if __name__ == '__main__':

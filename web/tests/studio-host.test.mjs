@@ -4,15 +4,17 @@ import fs from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { build } from 'esbuild';
+import { JSDOM } from 'jsdom';
 
 // Execute only the integration module against mocks, without a browser or site.
 const bridge = await fs.readFile('studio/host-bridge.ts', 'utf8');
 const bundled = await build({
   stdin: { contents: `const {window,document,location,registry,inputHandler,wasm,canvasView,eventBus,documentState,setChromeVisibility,setThemeMode,initPromise,dispatcher,getContext} = env;\n${bridge}`, loader: 'ts', resolveDir: resolve('.') },
   bundle: true, format: 'iife', platform: 'node', write: false, logLevel: 'silent',
-  alias: { '@jakal/input-profile': resolve('studio/input-profile.ts'), '@jakal/block-insertion': resolve('studio/block-insertion.ts'), '@jakal/file-actions': resolve('studio/file-actions.ts'), '@jakal/table-tools': resolve('studio/table-tools.ts'), '@jakal/object-layout': resolve('studio/object-layout.ts'), '@': resolve('../build/rhwp-studio-source/rhwp-studio/src') },
+  alias: { '@jakal/input-profile': resolve('studio/input-profile.ts'), '@jakal/block-insertion': resolve('studio/block-insertion.ts'), '@jakal/file-actions': resolve('studio/file-actions.ts'), '@jakal/table-tools': resolve('studio/table-tools.ts'), '@jakal/object-layout': resolve('studio/object-layout.ts'), '@jakal/image-tools': resolve('studio/image-tools.ts'), '@jakal/font-catalog': resolve('studio/font-catalog.ts'), '@': resolve('../build/rhwp-studio-source/rhwp-studio/src') },
 });
 function fixture() {
+  const dom = new JSDOM('');
   const definitions = new Map(), handlers = new Map(), messages = [], edits = [];
   definitions.set('table:create', { id: 'table:create', label: '표 만들기' });
   let focused = 0, offset = 4, paragraph = 7;
@@ -21,7 +23,7 @@ function fixture() {
   const parent = { postMessage: (message, origin) => messages.push({ message, origin }) };
   const env = {
     window: { parent, addEventListener() {} },
-    document: { getElementById: () => null, addEventListener: (event, run) => handlers.set(event, run), documentElement: { classList: { contains: () => false, toggle() {}, add() {} } } },
+    document: { createElement: tag => dom.window.document.createElement(tag), head: dom.window.document.head, getElementById: () => null, addEventListener: (event, run) => handlers.set(event, run), documentElement: { classList: { contains: () => false, toggle() {}, add() {} } } },
     location: { origin: 'https://unit.test', search: '' }, registry: { get: id => definitions.get(id), register: value => definitions.set(value.id, value) },
     inputHandler: { cursor, focus: () => focused++, getPosition: () => ({ sectionIndex: 2, paragraphIndex: 7, charOffset: 4 }), executeOperation: descriptor => { edits.push(descriptor); descriptor.operation(engine); } },
     wasm: {}, canvasView: null, eventBus: { on() {} }, documentState: { isDirty: () => true }, setChromeVisibility() {}, setThemeMode() {}, initPromise: Promise.resolve(),

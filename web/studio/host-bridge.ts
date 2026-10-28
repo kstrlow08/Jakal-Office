@@ -5,10 +5,15 @@ import { insertBlock } from '@jakal/block-insertion';
 import { installHostFileActions } from '@jakal/file-actions';
 import { installTableTools } from '@jakal/table-tools';
 import { installObjectLayout } from '@jakal/object-layout';
+import { installImageTools } from '@jakal/image-tools';
+import { installOfficeFonts } from '@jakal/font-catalog';
 void initPromise.then(() => installInputProfile({ wasm, input: inputHandler, view: canvasView }));
 const jakalHost = window.parent !== window;
 if (jakalHost) installHostFileActions(registry, action => jakalPost('file-action', { action }));
 if (jakalHost) installTableTools(registry, () => inputHandler);
+installImageTools(registry);
+installOfficeFonts(registry);
+document.addEventListener('jakal-font-loaded', () => { canvasView?.refreshPages(); });
 if (jakalHost) void initPromise.then(() => installObjectLayout(registry, dispatcher, eventBus, getContext, () => inputHandler, wasm));
 if (jakalHost) registry.register({
   id: 'jakal:insert-block', label: '텍스트 블록 삽입',
