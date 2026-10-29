@@ -125,3 +125,152 @@
   .jakal-ribbon { padding-inline: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .jakal-ribbon button { transition: none; } }
+
+/* Compact Hancom-style ribbon and formatting row. */
+.jakal-ribbon-on #menu-bar{padding:0 8px;background:#fff;border-bottom:1px solid #dedfe3;min-height:30px}
+.jakal-ribbon-on #menu-bar .menu-title{padding:4px 10px;font-size:13px;line-height:18px;font-weight:400;color:#30343a;border-bottom:2px solid transparent;letter-spacing:-.4px;background:transparent}
+.jakal-ribbon-on #menu-bar .menu-title.jakal-tab-active{color:#20272f;background:white;border-bottom-color:#3184ff;font-weight:700}
+.jakal-ribbon-on #menu-bar .menu-title:hover{background:#f3f7fc;border-bottom-color:#a9cfff}
+.jakal-menu-arrow{width:14px;margin-right:5px;color:#9a9fa6}
+.jakal-ribbon-toggle{width:24px;height:24px;color:#7c858e}
+.jakal-ribbon{min-height:56px;padding:3px 10px;background:white;border-bottom:1px solid #dadde2;scrollbar-width:thin;scrollbar-color:#c6ced8 transparent}
+.jakal-ribbon .tb-sep{background:#dadde2;margin:2px 7px;width:1px}
+.jakal-ribbon-group{gap:2px;align-items:stretch}
+.jakal-ribbon-button{width:auto;min-width:56px;gap:3px;padding:4px 7px;border:1px solid transparent;border-radius:3px;background:transparent;justify-content:center;color:#3e454d}
+.jakal-ribbon-icon{display:block;width:20px;height:20px;flex:0 0 auto;color:#51565c}
+.jakal-ribbon-icon[data-icon=icon-paste]{color:#ac7c45}
+.jakal-ribbon-icon[data-icon=icon-para-shape],.jakal-ribbon-icon[data-icon=icon-columns]{color:#547bb9}
+.jakal-ribbon-icon[data-icon=icon-image] path{fill:#c7e8d8;stroke:#6ea988}
+.jakal-ribbon-icon[data-icon=icon-image] circle{fill:#a7d1ed;stroke:#a7d1ed}
+.jakal-ribbon-icon[data-icon=icon-shape] circle{stroke:#4384ee}
+.jakal-ribbon-icon[data-icon=icon-shape] path{stroke:#43aa85}
+.jakal-ribbon-button .tb-label{font-size:12px;line-height:16px;min-height:16px;font-weight:400;letter-spacing:-.5px;color:#222a32;white-space:nowrap;text-align:center}
+.jakal-ribbon-stack{justify-content:center;gap:2px;padding-inline:2px}
+.jakal-ribbon-small{min-height:20px;padding:2px 7px;font-size:12px;line-height:16px;font-weight:400;letter-spacing:-.3px;color:#343d48;background:transparent;border:1px solid transparent;border-radius:3px}
+.jakal-ribbon button:hover:enabled{background:#edf5ff;border-color:#c9dff6}
+.jakal-ribbon button:active:enabled{background:#d8eaff;border-color:#90b9e9}
+.jakal-ribbon button:disabled{opacity:.32;cursor:not-allowed}
+.jakal-ribbon button:focus-visible,.jakal-quick-button:focus-visible{outline:2px solid #3184ff;outline-offset:-2px}
+/* Keep the established 56px strip; captions share its existing space. */
+.jakal-ribbon{height:56px;box-sizing:border-box;flex-shrink:0}
+.jakal-ribbon-group{height:49px;box-sizing:border-box;padding-bottom:9px;position:relative;flex-shrink:0}
+.jakal-ribbon-button{padding:0 7px;gap:1px;min-height:0}
+.jakal-ribbon-stack{gap:0;padding-inline:1px}
+.jakal-ribbon-small{height:20px;min-height:20px;box-sizing:border-box;padding:0 6px}
+.jakal-ribbon-caption{position:absolute;bottom:0;left:0;right:0;height:9px;line-height:9px;font-size:9px;color:#788493;text-align:center;white-space:nowrap;pointer-events:none;letter-spacing:0}
+.jakal-ribbon button[aria-pressed=true]{background:#e1efff;border-color:#9fc4ed;color:#174c85}
+.jakal-ribbon-small[aria-pressed]{padding-left:18px;position:relative}
+.jakal-ribbon-small[aria-pressed]::before{content:'';position:absolute;left:5px;top:6px;width:7px;height:7px;box-sizing:border-box;border:1px solid #a8b6c7;border-radius:1px;background:white}
+.jakal-ribbon-small[aria-pressed=true]::before{background:#3184db;border-color:#3184db;box-shadow:inset 0 0 0 1px white}
+.jakal-document-comparison{padding:12px 16px;font-size:12px;line-height:1.6}
+.jakal-document-comparison input{display:block;margin-top:6px;font:inherit}
+.jakal-comparison-results{max-height:55vh;overflow:auto}
+.jakal-comparison-results details{border:1px solid #dce3eb;border-radius:3px;margin:5px 0}
+.jakal-comparison-results summary{cursor:pointer;padding:6px 8px;background:#f5f8fc}
+.jakal-comparison-columns{display:grid;grid-template-columns:1fr 1fr}
+.jakal-comparison-columns>div{min-width:0;padding:8px}
+.jakal-comparison-columns .before{background:#fff3f2;color:#8b302d}
+.jakal-comparison-columns .after{background:#effaf2;color:#215b39}
+.jakal-comparison-columns pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:5px 0}
+.jakal-embed #style-bar{display:flex!important;align-items:center;gap:7px;min-height:32px;padding:3px 10px;background:white;overflow-x:auto;scrollbar-width:thin;flex-wrap:nowrap}
+.jakal-embed #style-bar .sb-field:has(>#style-name),.jakal-embed #style-bar .sb-field:has(>#font-lang),.jakal-embed #style-bar .sb-field:has(#linespacing-group),.jakal-embed #style-bar .jakal-font-connect{display:none!important}
+.jakal-embed #style-bar .sb-field-grid{display:flex!important;width:auto!important;max-width:none;gap:6px}
+.jakal-embed #style-bar .sb-field-ribbon-group{flex:0 0 auto!important;width:max-content!important;min-width:0!important;height:auto!important;max-width:none;border-right:1px solid #dedfe3;padding-right:8px}
+.jakal-embed #style-bar #font-name{width:170px;max-width:none;height:26px;border:1px solid #b7bec8;border-radius:2px;font-size:13px;background:#fff;padding-inline:6px}
+.jakal-embed #style-bar .sb-size-group{width:68px!important;height:26px!important;border:1px solid #b7bec8;border-radius:1px}
+.jakal-embed #style-bar .sb-size{font-size:13px;height:24px}
+.jakal-embed #style-bar .sb-btn{width:26px;min-width:26px;height:26px;min-height:26px;font-size:16px;border-radius:2px;color:#41464c}
+.jakal-embed #style-bar .sb-btn.active{background:#c4e5fd;border-color:#c4e5fd;color:#26384c}
+.jakal-quick-actions{display:flex;align-items:center;gap:3px;flex:0 0 auto;padding-right:8px;border-right:1px solid #dedfe3}
+.jakal-quick-button{width:26px;min-width:26px;height:26px;border:0;border-radius:3px;background:transparent;padding:3px}
+.jakal-quick-button .jakal-ribbon-icon{width:18px;height:18px;color:#747f8b}
+.jakal-quick-button:disabled{opacity:.3;cursor:not-allowed}
+.jakal-quick-button:hover:enabled{background:#edf5ff}
+.jakal-embed #scroll-container{background:#eff0f2}
+@media(max-width:760px){
+ .jakal-ribbon-on #menu-bar{padding-inline:6px}
+ .jakal-ribbon-on #menu-bar .menu-title{font-size:13px;padding-inline:9px}
+ .jakal-ribbon{padding-inline:8px}
+ .jakal-embed #style-bar{padding-inline:8px}
+ .jakal-embed #style-bar #font-name{width:150px}
+}
+
+.jakal-embed #style-bar .sb-btn .sb-ga{font-size:16px}
+
+.jakal-embed #style-bar .sb-btn.sb-has-arrow{width:34px;min-width:34px}
+
+/* Quiet office chrome: pictograms carry the secondary commands. */
+.jakal-ribbon .jakal-icon-command{display:grid;place-items:center;width:28px;height:20px;min-width:28px;padding:1px 4px;line-height:1;border-radius:2px}
+.jakal-icon-command .jakal-ribbon-icon{width:16px;height:16px;stroke-width:1.6;color:#4e5660}
+.jakal-ribbon .jakal-icon-command[aria-pressed]{padding:1px 4px}
+.jakal-ribbon .jakal-icon-command[aria-pressed]::before{display:none}
+.jakal-ribbon button:hover:enabled{background:#f0f2f5;border-color:#d5dbe2}
+.jakal-ribbon button[aria-pressed=true]{background:#e6edf5;border-color:#aebed0;color:#34485e}
+.jakal-ribbon .tb-sep{margin-inline:9px;background:#e0e3e7}
+.jakal-ribbon-caption{color:#737b85;font-size:9px}
+.jakal-ribbon-icon[data-icon=icon-image] path{fill:#e4e9e6;stroke:#62776e}
+.jakal-ribbon-icon[data-icon=icon-image] circle{fill:#d7e1e9;stroke:#7f95a5}
+.jakal-object-layout{background:#fff;border-color:#dce0e5;color:#303842}
+.jakal-layout-tabs [role=tab]{color:#4d5764;background:#f5f6f8}
+.jakal-layout-tabs [aria-selected=true]{background:#edf0f4;border-bottom-color:#788a9e;color:#273645}
+.jakal-layout-panel{box-sizing:border-box;height:56px;flex-wrap:nowrap;gap:12px;padding:3px 60px 3px 10px;overflow-x:auto;scrollbar-width:thin}
+.jakal-layout-group{flex:0 0 auto;border-color:#e0e3e7;padding-right:12px;gap:0}
+.jakal-layout-group>div{display:grid;grid-template-rows:repeat(2,20px);grid-auto-flow:column;gap:0 2px;align-content:center}
+.jakal-layout-group button{display:grid;place-items:center;width:28px;height:20px;padding:1px 4px;border-color:transparent;border-radius:2px;background:transparent;color:#4e5660}
+.jakal-layout-group .jakal-ribbon-icon{width:16px;height:16px;stroke-width:1.6}
+.jakal-layout-group button:hover:enabled{background:#eef1f5;border-color:#d0d8e1}
+.jakal-layout-group small{height:10px;line-height:10px;font-size:9px;color:#737b85}
+.jakal-layout-hint{display:none}
+.jakal-embed .modal-overlay{background:#17202b26;--color-primary:#52657c;--color-accent-bg:#edf0f4;--color-accent-bg-light:#f3f5f7}
+.jakal-embed .dialog-wrap{border:1px solid #bfc6ce;border-radius:4px;box-shadow:0 8px 28px #18233329;background:#fff;color:#303842}
+.jakal-embed .dialog-title{background:#f3f4f6;background-image:none;color:#303842;border-bottom:1px solid #dce0e5;font-size:13px;font-weight:500}
+.jakal-embed .dialog-footer{background:#fafbfc;border-color:#e0e3e7}
+.jakal-embed .dialog-btn{border-radius:3px;font-size:12px}
+.jakal-embed .dialog-btn-primary{background:#4b596a;border-color:#4b596a;color:#fff}
+.jakal-embed .dialog-btn-primary:hover{background:#3b4859;border-color:#3b4859}
+.jakal-embed .context-menu,.jakal-embed .shape-picker-panel{background:#fff;border:1px solid #c8ced6;border-radius:3px;box-shadow:0 6px 20px #18233322}
+.jakal-table-dialog{box-sizing:border-box;width:min(340px,calc(100vw - 24px));padding:16px;border-color:#c4cbd3;border-radius:4px;box-shadow:0 8px 28px #18233329;font-size:12px;color:#303842}
+.jakal-table-dialog::backdrop{background:#17202b26}
+.jakal-table-dialog h2{font-size:15px;font-weight:500;margin-bottom:10px}
+.jakal-table-dialog .jakal-table-hint{display:none}
+.jakal-table-dialog button{border-radius:3px;font-size:12px;padding:5px 9px}
+.jakal-table-dialog button[type=submit]{background:#4b596a;border-color:#4b596a}
+.jakal-table-size input,.jakal-nested-width input{border-radius:2px;padding:5px}
+.jakal-nested-preview{padding:10px;border:1px solid #adb8c4;background:#f4f6f8;margin-bottom:12px}
+.jakal-nested-preview>div{padding:8px;border:1px solid #7b8b9d;color:#4c5e72;font-size:11px}
+.jakal-table-presets{gap:5px;margin-bottom:12px}
+/* 12 x 12 table picker: no dimming, saturated fill or oversized rounded card. */
+.jakal-table-picker{position:fixed;inset:auto;margin:0;padding:0;width:275px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);box-sizing:border-box;overflow:auto;border:1px solid #bfc6ce;border-radius:3px;background:#fff;color:#343b44;box-shadow:0 6px 20px #17212d26;font:12px/1.4 var(--font-family-ui)}
+.jakal-table-picker::backdrop{background:transparent}
+.jakal-picker-header{display:flex;align-items:center;justify-content:space-between;height:29px;padding:0 9px;border-bottom:1px solid #e1e4e8;background:#fafbfc}
+.jakal-picker-header button{padding:2px 6px;border:1px solid transparent;background:transparent;border-radius:2px;font:inherit;color:#69727d;cursor:pointer}
+.jakal-picker-header button:hover{border-color:#cbd2da;background:#f0f2f5}
+.jakal-table-grid{display:grid;grid-template-columns:repeat(12,18px);grid-template-rows:repeat(12,18px);gap:3px;padding:10px 12px 4px;user-select:none}
+.jakal-table-grid>[role=row]{display:contents}
+.jakal-table-grid button{box-sizing:border-box;width:18px;height:18px;min-width:0;min-height:0;padding:0;margin:0;border:1px solid #c9cfd6;border-radius:0;background:#fff;cursor:crosshair}
+.jakal-table-grid button[aria-selected=true]{background:#e4ebf2;border-color:#879cb3}
+.jakal-table-grid button:focus-visible{outline:2px solid #536e8a;outline-offset:1px}
+.jakal-picker-size{margin:0;padding:4px 10px 8px;text-align:center;font-size:11px;color:#697585;font-variant-numeric:tabular-nums}
+.jakal-picker-advanced{display:flex;align-items:center;gap:8px;box-sizing:border-box;width:100%;padding:8px 10px;border:0;border-top:1px solid #e0e4e9;background:#fff;color:#343b44;font:inherit;text-align:left;cursor:pointer}
+.jakal-picker-advanced:hover{background:#f0f3f6}
+.jakal-picker-advanced .jakal-ribbon-icon{width:17px;height:17px;color:#5d6976}
+.jakal-picker-advanced kbd{margin-left:auto;font:10px var(--font-family-ui);color:#8a929b}
+.jakal-picker-error{padding:4px 10px 9px;margin:0;color:#a03131;font-size:11px}
+.jakal-table-picker [hidden]{display:none!important}
+.jakal-font-dialog,.jakal-hanja-dialog{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(460px,calc(100vw - 24px));max-height:85vh;padding:16px;border:1px solid #bcc5cf;border-radius:4px;background:#fff;color:#303842;box-shadow:0 8px 28px #18233329;font:12px/1.5 var(--font-family-ui)}
+.jakal-font-dialog::backdrop,.jakal-hanja-dialog::backdrop{background:#17202b26}
+.jakal-font-dialog h2,.jakal-hanja-dialog h2{font-size:15px;font-weight:500;margin:0 0 12px}
+.jakal-font-dialog label{display:block;margin:8px 0}
+.jakal-font-dialog [name=family]{box-sizing:border-box;display:block;width:100%;height:28px;padding:4px 7px;border:1px solid #b9c3ce;background:#fff;font:inherit}
+.jakal-font-dialog button,.jakal-font-upload,.jakal-hanja-dialog button{border:1px solid #c2cbd5;border-radius:3px;padding:5px 9px;background:#f8f9fb;color:inherit;font:inherit;cursor:pointer}
+.jakal-font-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.jakal-font-upload input{display:block;max-width:230px;margin-top:5px;font-size:11px}
+.jakal-font-dialog [role=status],.jakal-hanja-dialog [role=status]{font-size:11px;color:#697586;white-space:pre-wrap}
+.jakal-font-dialog footer,.jakal-hanja-dialog footer{display:flex;justify-content:flex-end;gap:6px;margin-top:12px;border-top:1px solid #e0e5eb;padding-top:10px}
+.jakal-hanja-words,.jakal-hanja-letters{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+.jakal-hanja-words button{font-size:17px}
+.jakal-hanja-candidates{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;max-height:240px;overflow:auto;padding:3px}
+.jakal-hanja-candidates button{font-size:19px;line-height:24px;min-width:0;padding:3px;overflow:hidden;white-space:nowrap}
+.jakal-hanja-dialog button:hover:enabled{background:#e9eff6}
+.jakal-hanja-dialog [data-apply]{background:#4b596a;color:white}
+.jakal-hanja-dialog button:disabled{opacity:.4;cursor:default}

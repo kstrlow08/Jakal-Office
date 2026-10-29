@@ -21,3 +21,8 @@ test('character dialog applies to the range captured before focus moved into the
   assert.deepEqual(f.ranges, [[start, end, properties]]);
   assert.deepEqual(f.pending, []);
 });
+test('a header selection never sends its body placeholder into a body range command',()=>{
+  const f=fixture();f.input.cursor={isInHeaderFooter:()=>true};
+  applyDialogCharacterProps(f.input,f.events,{start:{paragraph:0,offset:0},end:{paragraph:0,offset:4}},{bold:true},compare);
+  assert.deepEqual(f.ranges,[]);assert.deepEqual(f.pending,[['format-char',{bold:true}]]);
+});

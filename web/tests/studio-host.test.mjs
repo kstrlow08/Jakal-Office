@@ -11,7 +11,7 @@ const bridge = await fs.readFile('studio/host-bridge.ts', 'utf8');
 const bundled = await build({
   stdin: { contents: `const {window,document,location,registry,inputHandler,wasm,canvasView,eventBus,documentState,setChromeVisibility,setThemeMode,initPromise,dispatcher,getContext} = env;\n${bridge}`, loader: 'ts', resolveDir: resolve('.') },
   bundle: true, format: 'iife', platform: 'node', write: false, logLevel: 'silent',
-  alias: { '@jakal/ai-target': resolve('studio/ai-target.ts'), '@jakal/ribbon': resolve('studio/ribbon.ts'), '@noble/hashes': resolve('node_modules/@noble/hashes'), '@jakal/input-profile': resolve('studio/input-profile.ts'), '@jakal/block-insertion': resolve('studio/block-insertion.ts'), '@jakal/file-actions': resolve('studio/file-actions.ts'), '@jakal/table-tools': resolve('studio/table-tools.ts'), '@jakal/object-layout': resolve('studio/object-layout.ts'), '@jakal/image-tools': resolve('studio/image-tools.ts'), '@jakal/font-catalog': resolve('studio/font-catalog.ts'), '@': resolve('../build/rhwp-studio-source/rhwp-studio/src') },
+  alias: { '@jakal/header-format': resolve('studio/header-format.ts'), '@jakal/automatic-numbering': resolve('studio/automatic-numbering.ts'), '@jakal/hanja': resolve('studio/hanja.ts'), '@wasm': resolve('node_modules/@rhwp/core'), '@jakal/document-tools': resolve('studio/document-tools.ts'), '@jakal/ai-target': resolve('studio/ai-target.ts'), '@jakal/ribbon': resolve('studio/ribbon.ts'), '@noble/hashes': resolve('node_modules/@noble/hashes'), '@jakal/input-profile': resolve('studio/input-profile.ts'), '@jakal/block-insertion': resolve('studio/block-insertion.ts'), '@jakal/file-actions': resolve('studio/file-actions.ts'), '@jakal/table-tools': resolve('studio/table-tools.ts'), '@jakal/object-layout': resolve('studio/object-layout.ts'), '@jakal/image-tools': resolve('studio/image-tools.ts'), '@jakal/font-catalog': resolve('studio/font-catalog.ts'), '@': resolve('../build/rhwp-studio-source/rhwp-studio/src') },
 });
 function fixture() {
   const dom = new JSDOM('');
@@ -50,6 +50,18 @@ test('workbench shortcut is handled before the embedded editor and posts no text
   assert.equal(f.messages[0].message.type, 'workbench');
   assert.equal(f.messages[0].origin, 'https://unit.test');
   assert.equal('text' in f.messages[0].message, false);
+});
+
+test('review actions route to the host without transmitting document contents', () => {
+  const f = fixture();
+  for (const [id, action] of [['jakal:ai-edit', 'ai-edit'], ['jakal:original', 'original']]) {
+    const command = f.definitions.get(id);
+    assert.equal(command.canExecute({ hasDocument: false }), false);
+    command.execute();
+    assert.deepEqual(Object.keys(f.messages.at(-1).message).sort(), ['action', 'channel', 'sequence', 'type']);
+    assert.equal(f.messages.at(-1).message.action, action);
+  }
+  assert.equal(f.definitions.get('jakal:compare').opensDialog, true);
 });
 
 test('copy shortcut and document drops reach the host; image drops stay native', () => {

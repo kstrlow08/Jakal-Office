@@ -8,6 +8,7 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { HwpDocument, initSync } from '@rhwp/core';
 import { dragTableContext } from '../studio/table-drag.ts';
 import { finalizeHwpx, exportCompatibleHwp, layoutSignature } from '../studio/export-compat.ts';
+import { encryptedCopy } from '../studio/encrypted-export.ts';
 
 const dom=new JSDOM('');globalThis.DOMParser=dom.window.DOMParser;globalThis.XMLSerializer=dom.window.XMLSerializer;
 initSync({module:fs.readFileSync(new URL('../node_modules/@rhwp/core/rhwp_bg.wasm',import.meta.url))});
@@ -86,4 +87,19 @@ test('HWP conversion reopens with note numbering and object anchor geometry inta
     const reopened=new HwpDocument(artifact.bytes);
     try{assert.deepEqual(layoutSignature(finalizeHwpx(doc.exportHwpx())),layoutSignature(reopened.exportHwpx()));}finally{reopened.free();}
   }finally{doc.free();}
+});
+
+test('password HWPX reopens with text, objects and notes preserved and rejects a wrong password',()=>{
+  const doc=new HwpDocument(fs.readFileSync('tests/fixtures/notes-objects.hwpx'));
+  let reopened;
+  try {
+    const original=finalizeHwpx(doc.exportHwpx());
+    const encrypted=encryptedCopy(original,'Jakal-검증2026!',HwpDocument,readExport);
+    assert.throws(()=>HwpDocument.openWithPassword(encrypted,'wrong-password'));
+    reopened=HwpDocument.openWithPassword(encrypted,'Jakal-검증2026!');
+    assert.deepEqual(layoutSignature(original),layoutSignature(reopened.exportHwpx()));
+    assert.equal(reopened.getTextFileText(),doc.getTextFileText());
+    assert.throws(()=>encryptedCopy(original,'short',HwpDocument,readExport),/8~128/);
+    assert.throws(()=>encryptedCopy(original,'x'.repeat(129),HwpDocument,readExport),/8~128/);
+  }finally{reopened?.free();doc.free();}
 });

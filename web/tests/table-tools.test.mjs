@@ -74,7 +74,7 @@ test('the create command keeps a frozen cell path and uses one snapshot transact
   assert.equal(commands.get('table:parent-cell').canExecute(context), false);
   commands.get('table:create-nested').execute({ getInputHandler: () => input, wasm: engine });
   position.cellPath[0].cellIndex = 9;
-  submit(document.querySelector('dialog'));
+  document.querySelector('.jakal-table-grid [data-rows="2"][data-cols="2"]').click();
   assert.equal(operations.length, 1); assert.equal(operations[0].kind, 'snapshot');
   assert.equal(inserted[0][0].cellPath[0].cellIndex, 2);
 });
@@ -96,4 +96,26 @@ test('the former size picker now splits the selected cell without creating a tab
   assert.equal(dialog.querySelector('.jakal-nested-width').hidden, true);
   dialog.querySelector('[data-rows="2"]').click(); submit(dialog);
   assert.deepEqual(calls, [[0, 1, 2, 1, 1, 2, 2, false, false]]);
+});
+
+test('a document replacement while the grid is open cannot insert into the new document', t => {
+  fixture(t);
+  const commands = new Map([['table:create', { id: 'table:create' }]]);
+  let edits = 0;
+  const engine = { documentGeneration: 4 };
+  const input = { getCursorPosition: () => ({ sectionIndex: 0, paragraphIndex: 0, charOffset: 0 }), focus() {}, executeOperation() { edits++; } };
+  installTableTools({ get: id => commands.get(id), register: command => commands.set(command.id, command) }, () => input);
+  commands.get('table:create').execute({ getInputHandler: () => input, wasm: engine });
+  engine.documentGeneration++;
+  document.querySelector('.jakal-table-grid [data-rows="3"][data-cols="4"]').click();
+  assert.equal(edits, 0);
+  assert.match(document.querySelector('.jakal-picker-error').textContent, /문서가 바뀌었습니다/);
+});
+test('new body tables explicitly use inline document flow',t=>{
+  fixture(t);const commands=new Map([['table:create',{id:'table:create'}]]);let created;
+  const engine={documentGeneration:1,createTableEx:options=>{created=options;return{ok:true,paraIdx:0,controlIdx:0};}};
+  const input={cursor:{isInHeaderFooter:()=>false,isInFootnote:()=>false,isInTextBox:()=>false},getCursorPosition:()=>({sectionIndex:0,paragraphIndex:0,charOffset:0}),focus(){},executeOperation:op=>op.operation(engine)};
+  installTableTools({get:id=>commands.get(id),register:command=>commands.set(command.id,command)},()=>input);
+  commands.get('table:create').execute({getInputHandler:()=>input,wasm:engine});document.querySelector('.jakal-table-grid [data-rows="2"][data-cols="3"]').click();
+  assert.equal(created.treatAsChar,true);assert.equal(created.rowCount,2);assert.equal(created.colCount,3);
 });

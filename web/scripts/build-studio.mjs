@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { integrationHash } from './studio-version.mjs';
 import { compressAssets } from './compress-assets.mjs';
 import { restoreHostFileCommands } from '../studio/file-command-policy.mjs';
+import { useLineCaretDuringComposition } from '../studio/line-caret-policy.mjs';
+import { repairHeaderInput, repairHeaderText, repairHeaderCommand } from '../studio/compatibility-policy.mjs';
 
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = resolve(web, '..');
@@ -52,18 +54,26 @@ await build({
     '@jakal/export-compat': resolve(web, 'studio/export-compat.ts'),
     '@jakal/ai-target': resolve(web, 'studio/ai-target.ts'),
     '@jakal/ribbon': resolve(web, 'studio/ribbon.ts'),
+    '@jakal/document-tools': resolve(web, 'studio/document-tools.ts'),
+    '@jakal/header-format': resolve(web, 'studio/header-format.ts'),
+    '@jakal/automatic-numbering': resolve(web, 'studio/automatic-numbering.ts'),
+    '@jakal/hanja': resolve(web, 'studio/hanja.ts'),
   } },
   plugins: [{
     name: 'jakal-studio-host', enforce: 'pre',
     transform(code, id) {
       const path = id.replaceAll('\\', '/');
       if (path.endsWith('/engine/input-handler.ts')) {
+        code = repairHeaderInput(code);
+        code = useLineCaretDuringComposition(code);
         const start = code.indexOf('private hitTestCellRowCol(');
         const target = 'const ctx = this.cursor.getCellTableContext();';
         const at = code.indexOf(target, start);
         if (start < 0 || at < 0) throw new Error('Pinned table drag context changed');
         return `import { dragTableContext } from '@jakal/table-drag';\n` + code.slice(0,at) + code.slice(at).replace(target,'const ctx = dragTableContext(this.cursor);');
       }
+      if (path.endsWith('/engine/input-handler-text.ts')) return repairHeaderText(code);
+      if (path.endsWith('/engine/command.ts')) return repairHeaderCommand(code.replaceAll('\r\n', '\n'));
       if (path.endsWith('/engine/input-handler-mouse.ts')) {
         const target = 'this.cursor.setCellSelectionFocus?.(cellRC.row, cellRC.col);\n  this.updateCellSelection();';
         code = code.replaceAll('\r\n', '\n');
@@ -76,9 +86,16 @@ await build({
         return `import { OFFICE_FONT_ENTRIES } from '@jakal/font-catalog';\n` + code.replace(target,'const FONT_LIST: readonly FontEntry[] = [...FONT_RULE_WEBFONT_ENTRIES, ...OFFICE_FONT_ENTRIES];');
       }
       if (path.endsWith('/ui/toolbar.ts')) {
+        code = code.replaceAll('\r\n', '\n');
         const target = "const BASE_FONTS = ['함초롬바탕', '함초롬돋움', '맑은 고딕', '나눔고딕', '바탕', '돋움', '궁서'];";
         if (!code.includes(target)) throw new Error('Pinned toolbar font list changed');
-        return `import { OFFICE_FONT_NAMES } from '@jakal/font-catalog';\n` + code.replace(target,target.replace("'궁서']", "'궁서', ...OFFICE_FONT_NAMES]")).replace("this.fontMenuCategory = this.fontMenuDocumentFonts.length > 0 ? 'document' : 'current';", "this.fontMenuCategory = 'all';");
+        code = code.replace(target,target.replace("'궁서']", "'궁서', ...OFFICE_FONT_NAMES]")).replace("this.fontMenuCategory = this.fontMenuDocumentFonts.length > 0 ? 'document' : 'current';", "this.fontMenuCategory = 'all';");
+        const allFonts = "const fontId = this.wasm.findOrCreateFontId(name);\n        if (fontId >= 0) {\n          this.eventBus.emit('format-char', { fontId } as CharProperties);\n        }";
+        if (!code.includes(allFonts)) throw new Error('Pinned font language application changed');
+        code = code.replace(allFonts, "const fontIds = Array.from({length:7},(_,lang)=>this.wasm.findOrCreateFontIdForLang(lang,name));\n        if (fontIds.every(id=>id>=0)) this.eventBus.emit('format-char', {fontIds} as CharProperties);");
+        code = code.replace('const baseFonts = BASE_FONTS.map', 'const baseFonts = [...BASE_FONTS, ...connectedFontNames()].map');
+        code = code.replaceAll('getLocalFonts().map', '[...new Set([...getLocalFonts(), ...connectedFontNames()])].map');
+        return `import { OFFICE_FONT_NAMES, connectedFontNames } from '@jakal/font-catalog';\n` + code;
       }
       if (path.endsWith('/ui/symbols-dialog.ts')) {
         const target = 'new InsertTextCommand(pos, this.selectedChar)';
@@ -147,7 +164,7 @@ ${tableMethod}`);
         code = `import { finalizeHwpx, exportCompatibleHwp } from '@jakal/export-compat';\n` + code;
         return code.replace('return this.doc.exportHwpx();', `const artifact = this.exportHwpxWithReport();
           if (artifact.contentLoss.count > 0) throw new Error('저장 과정에서 지원하지 않는 개체가 발견되었습니다. 원본을 유지하고 저장을 중단했습니다.');
-          return finalizeHwpx(artifact.bytes);`);
+          return finalizeHwpx(artifact.bytes, this.doc);`);
       }
       if (id.replaceAll('\\', '/').endsWith('/core/host-canvas-fonts.ts')) {
         const scope = 'try { return operation(); } finally { currentSession = previous; }';
@@ -187,6 +204,9 @@ for (const name of ['theme-init.js', 'locale-init.js', 'favicon.ico', 'icons', '
 }
 await cp(resolve(source, 'assets/fonts'), resolve(out, 'fonts'), { recursive: true });
 await cp(resolve(web, 'public/fonts/editor'), resolve(out, 'fonts/jakal'), { recursive: true });
+await cp(resolve(web, 'public/studio-data'), resolve(out, 'data'), { recursive: true });
+await mkdir(resolve(out, 'licenses'), {recursive:true});
+await cp(resolve(web, 'public/licenses/Unicode-3.0.txt'), resolve(out, 'licenses/Unicode-3.0.txt'));
 await cp(resolve(source, 'LICENSE'), resolve(out, 'LICENSE-rhwp.txt'));
 await writeFile(resolve(out, 'jakal.css'), css);
 await compressAssets(out);

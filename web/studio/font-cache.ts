@@ -14,12 +14,10 @@ export function withFontResolutionCache<T>(owner: object | null, operation: () =
 }
 
 export function resolveCachedFont(font: string, resolve: () => string): string {
-  const exact = officeCanvasFont(font);
-  if (exact) return exact;
-  if (!current) return resolve();
+  if (!current) return officeCanvasFont(font) ?? resolve();
   const cached = current.values.get(font);
   if (cached !== undefined) return cached;
-  const resolved = resolve();
+  const resolved = officeCanvasFont(font) ?? resolve();
   if (current.values.size >= LIMIT) current.values.delete(current.values.keys().next().value!);
   current.values.set(font, resolved);
   return resolved;

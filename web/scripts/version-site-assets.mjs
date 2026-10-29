@@ -35,6 +35,15 @@ export async function versionSiteAssets(directory) {
     html = html.replaceAll(`"/${name}"`, `"/${name}?v=${value}"`);
   }
   await writeFile(index, html);
+  const studioIndex = resolve(root, 'studio/index.html');
+  let studioHtml;
+  try { studioHtml = await readFile(studioIndex, 'utf8'); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (studioHtml !== undefined) {
+    const value = await version(resolve(root, 'studio/jakal.css'));
+    studioHtml = studioHtml.replace(/\/studio\/jakal\.css(?:\?v=[a-f0-9]{16})?/g, `/studio/jakal.css?v=${value}`);
+    await writeFile(studioIndex, studioHtml);
+  }
   return Object.fromEntries([...versions].map(([file, value]) => [file.slice(root.length + 1), value]));
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

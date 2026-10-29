@@ -1,6 +1,7 @@
 import type { CommandRegistry } from '@/command/registry';
 import type { CommandServices, EditorContext } from '@/command/types';
 import { parentTableCell, type TablePosition, type TableOptions, type StructureOptions } from './nested-table.ts';
+import { showTablePicker } from './table-picker.ts';
 
 type Input = NonNullable<ReturnType<CommandServices['getInputHandler']>>;
 type TableEngine = CommandServices['wasm'] & {
@@ -98,25 +99,36 @@ export function installTableTools(registry: CommandRegistry, getInput: () => Inp
       && !context.inTableObjectSelection && !context.inPictureObjectSelection
       && !cursor.isInHeaderFooter() && !cursor.isInFootnote() && !cursor.isInTextBox();
   };
-  const execute = (services: CommandServices) => {
+  const execute = (services: CommandServices, params?: Record<string, unknown>) => {
     const input = services.getInputHandler();
     if (!input) return;
     const position = structuredClone(input.getCursorPosition());
     const generation = services.wasm.documentGeneration;
-    showTableDialog(position.parentParaIndex !== undefined, (rows, cols, widthPercent) => {
+    const apply = (rows: number, cols: number, widthPercent?: number) => {
       if (generation !== services.wasm.documentGeneration) throw new Error('문서가 바뀌었습니다. 창을 닫고 입력 위치를 다시 선택하세요.');
       input.executeOperation({ kind: 'snapshot', operationType: 'createTable', operation: engine => {
         if (position.parentParaIndex !== undefined) return (engine as TableEngine).createNestedTable(position, rows, cols, { widthPercent });
         const result = engine.createTableEx({ sectionIdx: position.sectionIndex, paraIdx: position.paragraphIndex,
-          charOffset: position.charOffset, rowCount: rows, colCount: cols });
+          charOffset: position.charOffset, rowCount: rows, colCount: cols, treatAsChar: true });
         if (!result.ok) throw new Error('표를 만들지 못했습니다. 입력 위치를 다시 선택하세요.');
         return { sectionIndex: position.sectionIndex, paragraphIndex: 0, charOffset: 0,
           parentParaIndex: result.paraIdx, controlIndex: result.controlIdx, cellIndex: 0, cellParaIndex: 0,
           cellPath: [{ controlIndex: result.controlIdx, cellIndex: 0, cellParaIndex: 0 }] };
       } });
-    }, () => input.focus());
+    };
+    const nested = position.parentParaIndex !== undefined;
+    const requested = params?.anchorEl as HTMLElement | undefined;
+    const anchor = requested?.isConnected ? requested : document.querySelector<HTMLElement>('#jakal-ribbon [data-command="table:create"], .jakal-layout-panel [data-command="table:create-nested"]') ?? undefined;
+    showTablePicker({ nested, anchor, onApply: apply, onClose: () => input.focus(),
+      onAdvanced: () => showTableDialog(nested, apply, () => input.focus()) });
   };
   registry.register({ ...original, canExecute: canCreate, execute });
+  for (const [id,label,treatAsChar] of [['table:inline','글자처럼 취급',true],['table:floating','본문과 어울리기',false]] as const) registry.register({id,label,
+    canExecute:context=>context.hasDocument&&context.isEditable&&!context.isFormMode&&(context.inTable||context.inTableObjectSelection)&&(getInput()?.getCursorPosition().cellPath?.length??0)<=1,
+    execute(services){const input=services.getInputHandler();if(!input)return;const p=input.getCursorPosition(),ref=input.getSelectedTableRef?.();
+      const sec=ref?.sec??p.sectionIndex,para=ref?.ppi??p.parentParaIndex,ci=ref?.ci??p.controlIndex;if(para===undefined||ci===undefined)return;
+      input.executeOperation({kind:'snapshot',operationType:'tablePlacement',operation:wasm=>{const result=wasm.setTableProperties(sec,para,ci,{treatAsChar});if(!result.ok)throw new Error('표의 배치를 바꾸지 못했습니다.');return p;}});input.focus();}
+  });
   registry.register({ id: 'table:create-nested', label: '표 안에 새 표 넣기', opensDialog: true,
     canExecute: context => context.inTable && canCreate(context), execute });
   registry.register({ id: 'table:parent-cell', label: '상위 셀로 이동', canExecute: context =>

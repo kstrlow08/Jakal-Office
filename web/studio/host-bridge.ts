@@ -9,17 +9,33 @@ import { installImageTools } from '@jakal/image-tools';
 import { installOfficeFonts } from '@jakal/font-catalog';
 import { readAiTarget, listAiTargets } from '@jakal/ai-target';
 import { installRibbon } from '@jakal/ribbon';
+import { clearHeaderTypingProps } from '@jakal/header-format';
+import { installAutomaticNumbering } from '@jakal/automatic-numbering';
 void initPromise.then(() => installInputProfile({ wasm, input: inputHandler, view: canvasView }));
 const jakalHost = window.parent !== window;
 if (jakalHost) installHostFileActions(registry, action => jakalPost('file-action', { action }));
 if (jakalHost) installTableTools(registry, () => inputHandler);
+if (jakalHost) installAutomaticNumbering(() => inputHandler);
 installImageTools(registry);
-installOfficeFonts(registry);
-document.addEventListener('jakal-font-loaded', () => { canvasView?.refreshPages(); });
+installOfficeFonts(registry, {generation:()=>wasm.documentGeneration});
+let jakalFontRefresh = 0;
+document.addEventListener('jakal-font-loaded', () => { if (jakalFontRefresh) return; jakalFontRefresh = requestAnimationFrame(() => { jakalFontRefresh=0; wasm.invalidateCanvasMetricFonts?.(); const refresh=canvasView?.refreshFontResources?.(); if(refresh)void refresh.catch(()=>canvasView?.refreshPages()); }); });
+eventBus.on('headerFooterModeChanged', () => { if (inputHandler) clearHeaderTypingProps(inputHandler); });
 if (jakalHost) void initPromise.then(() => installObjectLayout(registry, dispatcher, eventBus, getContext, () => inputHandler, wasm));
 if (jakalHost) registry.register({ id: 'jakal:workbench', label: '도구 찾기', canExecute: context => context.hasDocument, execute: () => jakalPost('workbench') });
+if (jakalHost) {
+  for (const [id, label, action] of [['jakal:ai-edit', 'AI 수정·비교', 'ai-edit'], ['jakal:original', '원본 받기', 'original']]) {
+    registry.register({ id, label, canExecute: context => context.hasDocument, execute: () => jakalPost('file-action', { action }) });
+  }
+  registry.register({ id: 'jakal:encrypted-download', label: '암호 걸어 받기', opensDialog: true, canExecute: context => context.hasDocument,
+    execute: () => { void import('@jakal/document-tools').then(module => module.downloadEncrypted(wasm)).catch(() => window.alert('암호 저장 도구를 불러오지 못했습니다. 다시 시도해 주세요.')); } });
+  registry.register({ id: 'jakal:compare', label: '문서 비교', opensDialog: true, canExecute: context => context.hasDocument,
+    execute: () => { void import('@jakal/document-tools').then(module => module.showDocumentComparison(wasm)).catch(() => window.alert('비교 도구를 불러오지 못했습니다. 다시 시도해 주세요.')); } });
+  registry.register({ id: 'insert:hanja', label: '한자 변환', shortcutLabel:'F9', opensDialog:true, canExecute: context => context.hasDocument && context.isEditable && !context.isFormMode,
+    execute: () => { void import('@jakal/hanja').then(module => module.showHanja(inputHandler)); } });
+}
 // After the object layout, so the contextual tab row keeps its place after 도구.
-if (jakalHost) void initPromise.then(() => installRibbon(registry, dispatcher, eventBus));
+if (jakalHost) void initPromise.then(() => installRibbon(registry, dispatcher, eventBus, { getContext }));
 if (jakalHost) registry.register({
   id: 'jakal:insert-block', label: '텍스트 블록 삽입',
   canExecute: context => {
@@ -80,6 +96,9 @@ window.addEventListener('message', event => {
   }
 });
 document.addEventListener('keydown', (event) => {
+  if (jakalHost && ['F9','HanjaMode'].includes(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isComposing && !inputHandler?.isComposing && event.target === (inputHandler as any)?.textarea) {
+    event.preventDefault(); event.stopImmediatePropagation(); dispatcher.dispatch('insert:hanja'); return;
+  }
   if (jakalHost && (event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey && event.code === 'KeyK') {
     event.preventDefault(); event.stopImmediatePropagation(); jakalPost('workbench'); return;
   }

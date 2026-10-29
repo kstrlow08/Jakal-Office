@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { withFontResolutionCache, resolveCachedFont } from '../studio/font-cache.ts';
+import { officeCanvasFont } from '../studio/font-catalog.ts';
+
+test('connected Canvas fonts use private families ahead of engine stand-ins',()=>{
+  const quoted=officeCanvasFont('bold 12px "나눔명조", serif');
+  assert.match(quoted,/^bold 12px "JakalOfficeFace\d+", serif$/);
+  assert.equal(officeCanvasFont('bold 12px 나눔명조, serif'),quoted);
+  assert.equal(officeCanvasFont('12px "다른 글꼴", "나눔명조", serif'),null);
+  assert.equal(officeCanvasFont('12px 나눔명조확장, serif'),null);
+});
 
 test('repeated font descriptors resolve once per paint without changing results', () => {
   const owner = {};

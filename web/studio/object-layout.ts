@@ -1,6 +1,7 @@
 import type { CommandRegistry } from '@/command/registry';
 import type { CommandServices, EditorContext } from '@/command/types';
 import { chartTargetFromSelection, matchChartRef } from '@/core/chart-data-target';
+import { commandIcon } from './command-icons';
 
 type Input = NonNullable<ReturnType<CommandServices['getInputHandler']>>;
 type Kind = 'table' | 'image' | 'chart' | 'object';
@@ -37,6 +38,7 @@ export function resolveLayoutSelection(context: EditorContext, input: Input | nu
 
 function groupsFor(selection: Selection): Group[] {
   if (selection.kind === 'table') return [
+    { label: '본문 배치', actions: [['table:inline','글자처럼 취급'],['table:floating','본문과 어울리기']] },
     { label: '속성', actions: [['table:cell-props', '표·셀 속성'], ['table:border-each', '테두리·배경']] },
     { label: '칸 선택·편집', actions: [['table:select-cells', '셀 선택 (F5)'], ['table:cell-split', '칸 나누기'], ['table:cell-merge', '칸 합치기']] },
     { label: '줄·칸 추가', actions: [['table:insert-row-above', '위에 줄'], ['table:insert-row-below', '아래에 줄'], ['table:insert-col-left', '왼쪽에 칸'], ['table:insert-col-right', '오른쪽에 칸']] },
@@ -54,7 +56,7 @@ function groupsFor(selection: Selection): Group[] {
   return groups;
 }
 
-export function installObjectLayout(registry: CommandRegistry, dispatcher: { dispatch: (id: string) => boolean },
+export function installObjectLayout(registry: CommandRegistry, dispatcher: { dispatch: (id: string, params?: Record<string, unknown>) => boolean },
   events: { on: (event: string, listener: () => void) => unknown }, getContext: () => EditorContext,
   getInput: () => Input | null, wasm: CommandServices['wasm']) {
   const header = document.getElementById('studio-header');
@@ -83,8 +85,9 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
       const actions = document.createElement('div');
       for (const [id, label] of group.actions) {
         if (!registry.get(id)) continue;
-        const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.dataset.command = id;
-        button.addEventListener('click', () => { dispatcher.dispatch(id); update(); });
+        const button = document.createElement('button'); button.type = 'button'; button.append(commandIcon(id)); button.dataset.command = id;
+        button.setAttribute('aria-label', label); button.title = label;
+        button.addEventListener('click', () => { dispatcher.dispatch(id, { anchorEl: button }); update(); });
         actions.append(button); buttons.set(id, button);
       }
       if (!actions.childElementCount) continue;
@@ -127,7 +130,7 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
       // a nested table's properties to its outer table by accident.
       const rootOnly = !!next?.nested && ['table:cell-props', 'table:border-each'].includes(id);
       button.disabled = rootOnly || !context.isEditable || context.isFormMode || !command || !!command.canExecute && !command.canExecute(context);
-      button.title = rootOnly ? '이 속성 창은 바깥 표에서 사용할 수 있습니다.' : '';
+      button.title = rootOnly ? '이 속성 창은 바깥 표에서 사용할 수 있습니다.' : button.getAttribute('aria-label') || '';
     }
   }
   const open = () => { manual = true; expanded = true; update(); region.scrollIntoView?.({ block: 'nearest' }); };
