@@ -1,5 +1,6 @@
 import { ribbonIcon } from './ribbon-icons';
 import { commandIcon } from './command-icons';
+import { installFormatBar } from './format-bar.ts';
 // Menu titles double as ribbon tabs: each one swaps the tool strip below the
 // menu bar, the way 한글 2024 does. The runtime's own dropdowns stay reachable
 // through the small arrow next to every title.
@@ -7,8 +8,8 @@ type Definition = { id: string; label: string; canExecute?: (context: any) => bo
 type Registry = { get: (id: string) => Definition | undefined };
 type Dispatcher = { dispatch: (id: string, params?: Record<string, unknown>) => boolean; isEnabled?: (id: string) => boolean };
 type Events = { on: (event: string, listener: () => void) => unknown };
-type Options = { storage?: Pick<Storage, 'getItem' | 'setItem'> | null; defaultTab?: string; getContext?: () => any; requestFrame?: (run: () => void) => unknown };
-/** [command, label, sprite icon class]. Items without an icon render as small text buttons. */
+type Options = { storage?: Pick<Storage, 'getItem' | 'setItem'> | null; defaultTab?: string; getContext?: () => any; getInput?:()=>any; requestFrame?: (run: () => void) => unknown };
+/** [command, label, sprite icon class]. Items without an icon render as compact symbols. */
 type Item = [id: string, label: string, icon?: string];
 type Group = { label?: string; items: Item[] };
 
@@ -44,9 +45,8 @@ export const ribbonTabs: Record<string, Group[]> = {
   format: [
     { label: '모양·스타일', items: [['format:char-shape', '글자 모양', 'icon-char-shape'], ['format:para-shape', '문단 모양', 'icon-para-shape'], ['format:style-dialog', '스타일', 'icon-style']] },
     { label: '글자 꾸밈', items: [['format:bold', '진하게'], ['format:italic', '기울임'], ['format:underline', '밑줄'], ['format:strikethrough', '취소선'], ['format:superscript', '위 첨자'], ['format:subscript', '아래 첨자']] },
-    { label: '크기·간격', items: [['format:font-size-increase', '글자 크게'], ['format:font-size-decrease', '글자 작게'], ['format:char-ratio-increase', '장평 넓게'], ['format:char-ratio-decrease', '장평 좁게'], ['format:char-spacing-increase', '자간 넓게'], ['format:char-spacing-decrease', '자간 좁게']] },
     { label: '문단 정렬', items: [['format:align-left', '왼쪽 정렬'], ['format:align-center', '가운데 정렬'], ['format:align-right', '오른쪽 정렬'], ['format:align-justify', '양쪽 정렬'], ['format:align-distribute', '배분 정렬'], ['format:align-split', '나눔 정렬']] },
-    { label: '간격·번호', items: [['format:line-spacing-increase', '줄 간격 늘림'], ['format:line-spacing-decrease', '줄 간격 줄임'], ['format:toggle-numbering', '문단 번호 켜기·끄기'], ['format:toggle-bullet', '글머리표 켜기·끄기'], ['format:para-num-shape', '문단 번호 모양'], ['format:bullet-shape', '글머리표 모양'], ['format:level-increase', '수준 올림'], ['format:level-decrease', '수준 내림']] },
+    { label: '번호·수준', items: [['format:toggle-numbering', '문단 번호 켜기·끄기'], ['format:toggle-bullet', '글머리표 켜기·끄기'], ['format:para-num-shape', '문단 번호 모양'], ['format:bullet-shape', '글머리표 모양'], ['format:level-increase', '수준 올림'], ['format:level-decrease', '수준 내림']] },
   ],
   page: [
     { label: '용지·구역', items: [['page:setup', '편집 용지', 'icon-page-setup'], ['page:page-border', '쪽 테두리·배경'], ['page:section-settings', '구역 설정']] },
@@ -115,12 +115,13 @@ export function installRibbon(registry: Registry, dispatcher: Dispatcher, events
   const quickButtons = new Map<string, HTMLButtonElement[]>();
   const stylebar = document.getElementById('style-bar');
   if (stylebar) {
+    if(options.getInput)installFormatBar(events,{getInput:options.getInput,getContext:options.getContext,requestFrame:options.requestFrame});
     const quick = document.createElement('div'); quick.className = 'jakal-quick-actions';
     quick.setAttribute('role', 'group'); quick.setAttribute('aria-label', '실행 취소와 다시 실행');
     for (const [id, label, icon] of [['edit:undo', '실행 취소', 'icon-undo'], ['edit:redo', '다시 실행', 'icon-redo']]) {
       if (!registry.get(id)) continue;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'tb-btn jakal-quick-button';
-      button.dataset.command = id; button.title = label; button.setAttribute('aria-label', label); button.append(ribbonIcon(icon));
+      button.dataset.command = id; button.title = label; button.setAttribute('aria-label', label); button.append(ribbonIcon(icon,16));
       button.addEventListener('click', () => { dispatcher.dispatch(id, { anchorEl: button }); update(); });
       quick.append(button); quickButtons.set(id, [button]);
     }
@@ -249,7 +250,10 @@ export function installRibbon(registry: Registry, dispatcher: Dispatcher, events
     if (!title) return;
     const name = (title.parentElement as HTMLElement).dataset.menu!;
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(name); }
-    else if (event.key === 'ArrowDown') { event.preventDefault(); openDropdown(title); }
+    else if (event.key === 'ArrowDown') {
+      event.preventDefault(); openDropdown(title);
+      title.parentElement?.querySelector<HTMLElement>('.menu-dropdown > .md-item:not(.disabled)[data-cmd]')?.focus();
+    }
     else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
       const list = titles.filter(entry => ribbonTabs[(entry.parentElement as HTMLElement).dataset.menu!]);

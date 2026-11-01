@@ -147,7 +147,7 @@ test('every secondary action has a local SVG and a readable accessible name', t 
     for (const button of f.panel.querySelectorAll('.jakal-icon-command')) {
       assert(button.querySelector('svg'), `Missing local vector for ${button.dataset.command}`);
       assert(button.getAttribute('aria-label')?.length, button.dataset.command);
-      assert.equal(button.textContent, '', 'names stay in tooltips, rather than repeating inside the strip');
+      assert.equal([...button.childNodes].filter(node=>node.nodeType===3).map(node=>node.textContent).join('').trim(), '', 'names stay in tooltips; concise SVG glyphs remain part of their icon');
     }
   }
 });

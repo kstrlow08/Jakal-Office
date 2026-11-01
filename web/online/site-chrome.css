@@ -1,0 +1,30 @@
+/* Shared, restrained office chrome for the document list and editor shell. */
+:root{--accent:#2d6fbd;--muted:#697686;--faint:#84909f;--line:#dde3eb;--side:#f7f9fc}
+.brand-mark{background:#3c6fa8;border-radius:3px}
+.nav-item.selected,.side-document.active{background:#e8eff8;color:#284f7c}
+.side-open:hover,.nav-item:hover,.side-document:hover{background:#edf1f7}
+.primary{background:#356fae;border-color:#356fae}
+.primary:hover{background:#295e98;border-color:#295e98}
+.primary:not(:disabled):active{background:#234f80;border-color:#234f80}
+.secondary{border-color:#cbd4df}
+.secondary:hover,.menu-trigger:hover,.menu-trigger[aria-expanded=true],.menu-popup button:hover,.menu-popup button:focus-visible{background:#f0f4f9}
+.menu-popup button[aria-checked=true]{background:#e9eff7;color:#2a4d75}
+.menu-popup{border-color:#ccd5e0;border-radius:4px;box-shadow:0 6px 20px #21354d1c}
+.document-card:hover{background:#f7f9fc}
+.document-card-open:focus-visible{outline-offset:-2px}
+.search-box input,.sort-label select{border-color:#cfd8e3;background:#fff}
+.search-box input:focus,.sort-label select:focus{border-color:#6e94c2}
+.home-view{padding-top:32px}
+.intro{padding-bottom:22px}
+.document-section{margin-top:24px}
+.editing .save-status{color:#6e7c8c}
+.editing .document-title{border-radius:3px;padding-inline:5px;margin-left:-5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editing .document-title:hover{background:#f0f4f9}
+.editing .editor-actions .primary{background:#356fae;border-color:#356fae}
+.editing .editor-actions .primary:hover{background:#295e98;border-color:#295e98}
+.editing .editor-actions [data-action=ai-edit]{background:#f1f5fa;color:#3e6693}
+.editing .editor-toolbar{border-bottom-color:#d3dbe5}
+@media(max-width:700px){.home-view{padding-top:24px}.editing .document-title{max-width:calc(100% - 40px)}}
+
+.editing .editor-actions .jakal-action-with-icon{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.jakal-shell-icon{display:block;flex:0 0 auto;width:16px;height:16px;fill:currentColor;stroke:none}

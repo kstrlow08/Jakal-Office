@@ -16,7 +16,9 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 */
-const icons: Record<string, [string, Record<string, string>][] > = {
+import { officeIconNodes, type IconNode } from './office-icons.ts';
+import { octiconAsset } from './octicons.ts';
+const icons: Record<string, IconNode[]> = {
   'icon-mono-languages': [['path',{d:'m5 8 6 6m-7 0 6-6 2-3M2 5h12M7 2h1m14 20-5-10-5 10m2-4h6'}]],
   "icon-mono-settings-2": [["path",{"d":"M20 7h-9"}],["path",{"d":"M14 17H5"}],["circle",{"cx":"17","cy":"17","r":"3"}],["circle",{"cx":"7","cy":"7","r":"3"}]],
   "icon-mono-text-cursor": [["path",{"d":"M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1"}],["path",{"d":"M7 22h1a4 4 0 0 0 4-4v-1"}],["path",{"d":"M7 2h1a4 4 0 0 1 4 4v1"}]],
@@ -174,13 +176,16 @@ const icons: Record<string, [string, Record<string, string>][] > = {
   "icon-orientation": [["rect",{"x":"2","y":"2","width":"12","height":"17","rx":".4"}],["rect",{"x":"9","y":"11","width":"13","height":"11","rx":".4","fill":"white"}]],
   "icon-columns": [["rect",{"x":"3","y":"2","width":"18","height":"20","rx":".4"}],["path",{"d":"M7 6h3m-3 4h3m-3 4h3m-3 4h3m4-12h3m-3 4h3m-3 4h3m-3 4h3","stroke":"#547bb9"}]]
 };
-export function ribbonIcon(name: string): SVGSVGElement | HTMLSpanElement {
-  const nodes = icons[name];
+export function ribbonIcon(name: string, size:16|24=24): SVGSVGElement | HTMLSpanElement {
+  const octicon=octiconAsset(name,size);if(octicon)return octicon;
+  const nodes = officeIconNodes[name] ?? icons[name];
   if (!nodes) { const fallback = document.createElement('span'); fallback.className = `tb-sprite ${name}`; fallback.setAttribute('aria-hidden', 'true'); return fallback; }
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   for (const [key, value] of Object.entries({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',focusable:'false',class:'jakal-ribbon-icon'})) svg.setAttribute(key,value);
   svg.setAttribute('data-icon', name);
+  svg.dataset.iconProvider='office';svg.style.setProperty('--jakal-icon-width',size+'px');svg.style.setProperty('--jakal-icon-height',size+'px');
+  svg.setAttribute('width',String(size));svg.setAttribute('height',String(size));
   if (name === 'icon-para-shape' || name === 'icon-table') {
     const frame=document.createElementNS(ns,'rect');for(const [key,value] of Object.entries({x:'3',y:'2',width:'18',height:'20',rx:'.2',fill:'white'}))frame.setAttribute(key,value);svg.append(frame);
     const lines=document.createElementNS(ns,'path');lines.setAttribute('d',name==='icon-table'?'M3 7h18M3 12h18M3 17h18M9 2v20M15 2v20':'M7 6h10M7 10h10M7 14h10M7 18h7');lines.setAttribute('stroke-width',name==='icon-table'?'1.1':'1.3');svg.append(lines);return svg;
@@ -188,12 +193,13 @@ export function ribbonIcon(name: string): SVGSVGElement | HTMLSpanElement {
   if (name === 'icon-char-shape' || name === 'icon-style') {
     svg.setAttribute('viewBox','0 0 36 36');
     const glyph = document.createElementNS(ns,'text'); glyph.setAttribute('x','1'); glyph.setAttribute('y','30'); glyph.setAttribute('font-size','31'); glyph.setAttribute('font-family','sans-serif'); glyph.setAttribute('fill','currentColor'); glyph.setAttribute('stroke','none'); glyph.textContent='가'; svg.append(glyph);
-    if(name === 'icon-style') { const pen=document.createElementNS(ns,'path'); pen.setAttribute('d','M29 11l4 2-7 19-5 1 1-5z');pen.setAttribute('stroke','#bc7549');pen.setAttribute('fill','#fff4e9');svg.append(pen); }
+    if(name === 'icon-style') { const pen=document.createElementNS(ns,'path'); pen.setAttribute('d','M29 11l4 2-7 19-5 1 1-5z');pen.setAttribute('stroke','currentColor');pen.setAttribute('fill','none');svg.append(pen); }
     return svg;
   }
-  for (const [tag, attributes] of nodes) {
+  for (const [tag, attributes, text] of nodes) {
     const shape = document.createElementNS(ns, tag);
     for (const [key, value] of Object.entries(attributes)) shape.setAttribute(key,value);
+    if(text!==undefined)shape.textContent=text;
     svg.append(shape);
   }
   return svg;

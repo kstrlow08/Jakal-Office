@@ -1,8 +1,9 @@
+export const documentSummary = ({ id, name, originalFormat, updated, created, revision, draft, bytes }) =>
+  ({ id, name, originalFormat, updated, created, revision, draft, byteLength: bytes.byteLength });
 // Binary documents, originals and revision payloads are read only on demand.
 export function createDocumentStore(indexedDB, name = 'jakal-office-online-v1') {
   let connection;
-  const summary = ({ id, name, originalFormat, updated, created, revision, draft, bytes }) =>
-    ({ id, name, originalFormat, updated, created, revision, draft, byteLength: bytes.byteLength });
+  const summary = documentSummary;
   function write(tx, record, previous) {
     const binaries = tx.objectStore('binaries');
     if (record.original) binaries.put(record.original, [record.id, 'original']);

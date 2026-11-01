@@ -9,6 +9,8 @@ import { installImageTools } from '@jakal/image-tools';
 import { installOfficeFonts } from '@jakal/font-catalog';
 import { readAiTarget, listAiTargets } from '@jakal/ai-target';
 import { installRibbon } from '@jakal/ribbon';
+import { installSurfaceIcons } from '@jakal/surface-icons';
+import { installResponsiveFit } from '@jakal/responsive-fit';
 import { clearHeaderTypingProps } from '@jakal/header-format';
 import { installAutomaticNumbering } from '@jakal/automatic-numbering';
 void initPromise.then(() => installInputProfile({ wasm, input: inputHandler, view: canvasView }));
@@ -35,7 +37,12 @@ if (jakalHost) {
     execute: () => { void import('@jakal/hanja').then(module => module.showHanja(inputHandler)); } });
 }
 // After the object layout, so the contextual tab row keeps its place after 도구.
-if (jakalHost) void initPromise.then(() => installRibbon(registry, dispatcher, eventBus, { getContext }));
+if (jakalHost) void initPromise.then(() => {
+  installRibbon(registry, dispatcher, eventBus, { getContext, getInput:()=>inputHandler });
+  installSurfaceIcons();
+  installResponsiveFit(window,{mode:()=>userSettings.getViewSettings().zoomFitMode,
+    ready:()=>wasm.pageCount>0&&!document.documentElement.classList.contains('rhwp-busy'),apply:applySavedZoomFitMode});
+});
 if (jakalHost) registry.register({
   id: 'jakal:insert-block', label: '텍스트 블록 삽입',
   canExecute: context => {

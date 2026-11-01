@@ -34,7 +34,6 @@ export async function versionSiteAssets(directory) {
     const value = await version(resolve(root, name));
     html = html.replaceAll(`"/${name}"`, `"/${name}?v=${value}"`);
   }
-  await writeFile(index, html);
   const studioIndex = resolve(root, 'studio/index.html');
   let studioHtml;
   try { studioHtml = await readFile(studioIndex, 'utf8'); }
@@ -43,7 +42,16 @@ export async function versionSiteAssets(directory) {
     const value = await version(resolve(root, 'studio/jakal.css'));
     studioHtml = studioHtml.replace(/\/studio\/jakal\.css(?:\?v=[a-f0-9]{16})?/g, `/studio/jakal.css?v=${value}`);
     await writeFile(studioIndex, studioHtml);
+    const entry=studioHtml.match(/src="(\/studio\/assets\/index-[^"?]+\.js)"/);
+    const {readdir}=await import('node:fs/promises');
+    const wasm=(await readdir(resolve(root,'studio/assets'))).find(name=>/^rhwp_bg-.+\.wasm$/.test(name));
+    if(entry&&wasm){
+      const hints='<script id="studio-assets" type="application/json">'+JSON.stringify({module:entry[1],wasm:'/studio/assets/'+wasm})+'</script>';
+      html=html.replace(/<script id="studio-assets" type="application\/json">[^<]*<\/script>/,'');
+      html=html.replace('</head>',hints+'\n</head>');
+    }
   }
+  await writeFile(index, html);
   return Object.fromEntries([...versions].map(([file, value]) => [file.slice(root.length + 1), value]));
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

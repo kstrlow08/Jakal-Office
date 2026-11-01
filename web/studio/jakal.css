@@ -1,4 +1,17 @@
 .jakal-embed { color-scheme: light; }
+/* Shared compact command assets across native menus, dialogs and contextual tools. */
+.jakal-embed .jakal-command-row > .jakal-ribbon-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:16px;height:16px;pointer-events:none;color:currentColor;flex:none}
+.jakal-embed .jakal-command-row > svg:not(.jakal-octicon){stroke-width:2.1}
+.jakal-embed .jakal-command-row:focus-visible{outline:0;background:#edf2f7;color:#24292f;box-shadow:inset 2px 0 #0969da}
+.jakal-embed .menu-dropdown,.jakal-embed .context-menu{--ui-selected:#edf2f7;--color-primary-dark:#24292f;--color-text:#303842;--ui-border:#d1d9e0;border-radius:4px;box-shadow:0 6px 20px #1f232820}
+.jakal-embed .jakal-action-icon{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.jakal-embed .jakal-action-icon > svg{flex:0 0 16px;width:16px;height:16px;color:inherit;pointer-events:none}
+.jakal-embed .jakal-action-icon > .jakal-octicon{fill:currentColor;stroke:none}
+.jakal-embed .dialog-close,.jakal-embed .cs-icon-btn:has(svg){display:inline-flex;align-items:center;justify-content:center}
+.jakal-embed .dialog-close > svg,.jakal-embed .cs-icon-btn > svg{width:16px;height:16px;flex:none;color:inherit;pointer-events:none}
+.jakal-embed .dialog-close > .jakal-octicon,.jakal-embed .cs-icon-btn > .jakal-octicon{fill:currentColor;stroke:none}
+.jakal-embed .jakal-ribbon-icon[data-icon-provider=office]{width:var(--jakal-icon-width,24px);height:var(--jakal-icon-height,24px)}
+@media(prefers-reduced-motion:reduce){.jakal-embed *, .jakal-embed *::before,.jakal-embed *::after{scroll-behavior:auto!important;transition:none!important}}
 /* Editor chrome (menus, ribbon, toolbars, dialogs) shares the site's gothic UI face; document text is untouched. */
 @font-face { font-family: 'Spoqa Han Sans Neo'; font-weight: 400; font-display: swap; src: url('/fonts/SpoqaHanSansNeo-Regular.woff2') format('woff2'); }
 @font-face { font-family: 'Spoqa Han Sans Neo'; font-weight: 500; font-display: swap; src: url('/fonts/SpoqaHanSansNeo-Medium.woff2') format('woff2'); }
@@ -274,3 +287,35 @@
 .jakal-hanja-dialog button:hover:enabled{background:#e9eff6}
 .jakal-hanja-dialog [data-apply]{background:#4b596a;color:white}
 .jakal-hanja-dialog button:disabled{opacity:.4;cursor:default}
+
+/* One compact, persistent formatting row, following the classic office toolbar. */
+.jakal-embed #style-bar{gap:6px;border-top:1px solid #f1f3f5;border-bottom:1px solid #cfd6df;background:#fafbfc}
+.jakal-embed #style-bar .sb-command-track{display:flex!important;flex-wrap:nowrap!important;align-items:center;width:max-content!important;flex:0 0 auto;gap:6px}
+.jakal-embed #style-bar .sb-command-band{flex-wrap:nowrap!important;flex:0 0 auto}
+.jakal-metric-group{display:flex;align-items:center;flex:0 0 auto;gap:5px;padding-right:7px;border-right:1px solid #d9dfe7}
+.jakal-metric-group:last-child{padding-right:0;border:0}
+.jakal-metric-field{box-sizing:border-box;display:inline-flex;align-items:center;flex:0 0 auto;height:26px;border:1px solid #b7c0cc;border-radius:2px;background:#fff;overflow:hidden;color:#303b49}
+.jakal-metric-field:focus-within{border-color:#668fc2;box-shadow:0 0 0 1px #dce9f8}
+.jakal-metric-field label{display:inline-flex;align-items:center;align-self:stretch;padding:0 5px;margin:0;border-right:1px solid #edf0f4;background:#f6f8fb;color:#596879;font-size:11px;line-height:24px;white-space:nowrap;cursor:text}
+.jakal-embed #style-bar .jakal-metric-field input{box-sizing:border-box;width:31px;min-width:31px;height:24px;min-height:0;margin:0;padding:0 2px;border:0;border-radius:0;outline:0;background:#fff;color:#263344;text-align:right;font:12px/24px var(--font-family-ui);font-variant-numeric:tabular-nums;appearance:textfield;-moz-appearance:textfield}
+.jakal-metric-field input::-webkit-inner-spin-button,.jakal-metric-field input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.jakal-metric-unit{padding:0 3px 0 1px;font-size:10px;color:#7d8895}
+.jakal-metric-arrows{display:grid;grid-template-rows:12px 12px;width:11px;border-left:1px solid #e1e6ed;background:#fafbfc}
+.jakal-embed #style-bar .jakal-metric-arrows button{box-sizing:border-box;display:block;width:10px;min-width:0;height:12px;min-height:0;padding:0;border:0;border-radius:0;background:transparent;color:#69798c;font:9px/10px sans-serif;cursor:pointer}
+.jakal-embed #style-bar .jakal-metric-arrows button:hover:enabled{background:#e0ebf8;color:#244f87}
+.jakal-metric-field:has(input:disabled){opacity:.4}
+.jakal-embed #style-bar .sb-btn.active{background:#e0ebf8;border-color:#adc3de;color:#244f87}
+.jakal-embed #style-bar .sb-btn:focus-visible,.jakal-metric-arrows button:focus-visible{outline:2px solid #4d7eb8;outline-offset:-2px}
+.jakal-ribbon-button .tb-label{letter-spacing:-.25px}
+.jakal-ribbon .tb-sep{background:#d6dce4}
+@media(max-width:1100px){.jakal-embed #style-bar #font-name{width:145px}.jakal-embed #style-bar{gap:5px}.jakal-metric-group{gap:4px;padding-right:5px}}
+
+/* GitHub Octicons keep their original optical sizes and filled outline geometry. */
+.jakal-ribbon-icon.jakal-octicon{width:var(--jakal-icon-width);height:var(--jakal-icon-height);fill:currentColor;stroke:none;color:#59636e}
+.jakal-ribbon-button:has(.jakal-octicon) .tb-label{line-height:14px;min-height:14px}
+.jakal-quick-button{display:grid;place-items:center}
+.jakal-icon-command .jakal-ribbon-icon:not(.jakal-octicon),.jakal-layout-group .jakal-ribbon-icon:not(.jakal-octicon){stroke-width:2.1}
+.jakal-ribbon button:hover:enabled,.jakal-layout-group button:hover:enabled{background:#f0f2f4;border-color:#d1d9e0}
+.jakal-ribbon button[aria-pressed=true] .jakal-ribbon-icon,.jakal-quick-button:hover:enabled .jakal-ribbon-icon{color:#0969da}
+.jakal-ribbon-icon[data-icon=icon-para-shape],.jakal-ribbon-icon[data-icon=icon-columns]{color:#59636e}
+.jakal-ribbon-icon[data-icon=icon-shape] circle,.jakal-ribbon-icon[data-icon=icon-shape] path,.jakal-ribbon-icon[data-icon=icon-columns] path{stroke:currentColor;fill:none}

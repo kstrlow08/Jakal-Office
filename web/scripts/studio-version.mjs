@@ -6,7 +6,12 @@ export async function integrationHash() {
   hash.update(await readFile(new URL('../studio/ai-target.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/load-progress.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/ribbon-icons.ts', import.meta.url)));
+  for(const name of ['octicons.ts','octicons-data.ts','octicons-manifest.json'])hash.update(await readFile(new URL('../studio/'+name,import.meta.url)));
+  hash.update(await readFile(new URL('../studio/format-bar.ts', import.meta.url)));
+  hash.update(await readFile(new URL('../studio/office-icons.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/command-icons.ts', import.meta.url)));
+  hash.update(await readFile(new URL('../studio/surface-icons.ts', import.meta.url)));
+  hash.update(await readFile(new URL('../studio/responsive-fit.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/table-picker.ts', import.meta.url)));
   for (const file of ['font-faces.ts','header-format.ts','compatibility-policy.mjs','automatic-numbering.ts','hanja.ts']) hash.update(await readFile(new URL('../studio/'+file,import.meta.url)));
   hash.update(await readFile(new URL('../public/studio-data/hanja-17.0.0.json',import.meta.url)));

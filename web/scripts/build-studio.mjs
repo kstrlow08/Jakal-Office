@@ -54,6 +54,8 @@ await build({
     '@jakal/export-compat': resolve(web, 'studio/export-compat.ts'),
     '@jakal/ai-target': resolve(web, 'studio/ai-target.ts'),
     '@jakal/ribbon': resolve(web, 'studio/ribbon.ts'),
+    '@jakal/surface-icons': resolve(web, 'studio/surface-icons.ts'),
+    '@jakal/responsive-fit': resolve(web, 'studio/responsive-fit.ts'),
     '@jakal/document-tools': resolve(web, 'studio/document-tools.ts'),
     '@jakal/header-format': resolve(web, 'studio/header-format.ts'),
     '@jakal/automatic-numbering': resolve(web, 'studio/automatic-numbering.ts'),
@@ -97,6 +99,11 @@ await build({
         code = code.replaceAll('getLocalFonts().map', '[...new Set([...getLocalFonts(), ...connectedFontNames()])].map');
         return `import { OFFICE_FONT_NAMES, connectedFontNames } from '@jakal/font-catalog';\n` + code;
       }
+      if (path.endsWith('/ui/context-menu.ts')) {
+        const target='    document.body.appendChild(menu);';
+        if(!code.includes(target))throw new Error('Pinned context menu boundary changed');
+        return `import { decorateCommandSurface } from '@jakal/surface-icons';\n`+code.replace(target,'    decorateCommandSurface(menu);\n'+target);
+      }
       if (path.endsWith('/ui/symbols-dialog.ts')) {
         const target = 'new InsertTextCommand(pos, this.selectedChar)';
         if (!code.includes(target)) throw new Error('Pinned symbol insertion changed');
@@ -117,6 +124,9 @@ await build({
       }
       if (id.replaceAll('\\', '/').endsWith('/rhwp-studio/src/main.ts')) {
         code = code.replaceAll('\r\n', '\n');
+        const serialResources='await loadWebFonts([], undefined, extensionViewerSettings);  // CSS @font-face 등록 + CRITICAL 폰트만 로드\n    msg.textContent = \'WASM 로딩 중...\';\n    await wasm.initialize();';
+        if(!code.includes(serialResources))throw new Error('Pinned resource initialization changed');
+        code=code.replace(serialResources,"msg.textContent = '글꼴과 문서 엔진 준비 중…';\n    await Promise.all([loadWebFonts([], undefined, extensionViewerSettings), wasm.initialize()]);");
         const progress = '  await waitForNextPaint();\n}';
         const progressAt = code.indexOf('async function updateLoadProgress(');
         if (progressAt < 0 || !code.slice(progressAt).includes(progress)) throw new Error('Pinned document progress changed');
@@ -207,6 +217,7 @@ await cp(resolve(web, 'public/fonts/editor'), resolve(out, 'fonts/jakal'), { rec
 await cp(resolve(web, 'public/studio-data'), resolve(out, 'data'), { recursive: true });
 await mkdir(resolve(out, 'licenses'), {recursive:true});
 await cp(resolve(web, 'public/licenses/Unicode-3.0.txt'), resolve(out, 'licenses/Unicode-3.0.txt'));
+await cp(resolve(web, 'public/licenses/octicons-MIT.txt'), resolve(out, 'licenses/octicons-MIT.txt'));
 await cp(resolve(source, 'LICENSE'), resolve(out, 'LICENSE-rhwp.txt'));
 await writeFile(resolve(out, 'jakal.css'), css);
 await compressAssets(out);

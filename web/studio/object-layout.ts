@@ -147,9 +147,15 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
     if (event.key === 'Escape') { event.preventDefault(); expanded = false; update(); getInput()?.focus(); }
   };
   region.addEventListener('keydown', onKeydown); tabs.addEventListener('keydown', onKeydown);
+  let pending=false;
+  const scheduleUpdate=()=>{
+    if(pending)return;pending=true;
+    const run=()=>{pending=false;update();};
+    if(document.defaultView?.requestAnimationFrame)document.defaultView.requestAnimationFrame(run);else run();
+  };
   for (const event of ['cursor-cell-changed', 'cursor-format-changed', 'selection-changed', 'command-state-changed',
     'table-object-selection-changed', 'picture-object-selection-changed', 'document-changed', 'document-mutated', 'document-loaded']) {
-    events.on(event, () => { if (event.startsWith('document-')) selectionCache = ''; update(); });
+    events.on(event, () => { if (event.startsWith('document-')) selectionCache = ''; scheduleUpdate(); });
   }
   update();
 }

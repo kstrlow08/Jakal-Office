@@ -1,8 +1,18 @@
 import { ribbonIcon } from './ribbon-icons.ts';
+import { officeCommandIcons } from './office-icons.ts';
 
 // Small commands use the same local vector vocabulary throughout the ribbon
 // and contextual tools. Names and shortcuts remain in accessible tooltips.
 export const commandIcons: Record<string, string> = {
+  'file:new-doc':'new-doc', 'file:open':'folder-open', 'file:open-recent':'history', 'file:save':'save',
+  'file:print':'print', 'file:print-to-pdf':'pdf', 'file:page-setup':'page-setup', 'file:export-html':'code',
+  'edit:paste':'clipboard-paste', 'edit:find':'search-check', 'edit:delete-object':'trash-2',
+  'format:char-shape':'font', 'format:para-shape':'pilcrow', 'format:style-dialog':'paintbrush',
+  'page:setup':'page-setup', 'page:col-settings':'columns-2', 'table:create':'table',
+  'insert:image':'image', 'insert:shape':'shape', 'insert:textbox':'textbox', 'insert:symbols':'symbols',
+  'insert:footnote':'footnote', 'insert:endnote':'endnote', 'view:toggle-grid':'table',
+  'view:office-fonts':'font', 'tool:options':'settings-2', 'jakal:ai-edit':'sparkles',
+  'jakal:compare':'compare', 'jakal:workbench':'search-check', 'jakal:encrypted-download':'lock',
   'file:save-as': 'files', 'file:save-as-hwpx': 'file-down', 'file:save-as-hwp': 'file-type', 'jakal:original': 'file-clock',
   'edit:cut': 'scissors', 'edit:copy': 'copy', 'edit:format-copy': 'paintbrush', 'edit:format-paste': 'paintbrush-vertical',
   'edit:select-all': 'square-dashed-mouse-pointer', 'edit:delete': 'eraser', 'edit:find-replace': 'replace', 'edit:find-again': 'search-check', 'edit:goto': 'corner-down-right',
@@ -33,4 +43,8 @@ export const commandIcons: Record<string, string> = {
   'insert:hanja':'languages', 'format:toggle-numbering':'list-ordered', 'format:toggle-bullet':'list',
   'table:inline':'text-cursor', 'table:floating':'wrap-text',
 };
-export function commandIcon(id: string) { return ribbonIcon('icon-mono-' + (commandIcons[id] ?? 'settings-2')); }
+const primaryIcons = new Set(['new-doc','folder-open','save','print','pdf','page-setup','font','table','shape','textbox','symbols','footnote','endnote','sparkles','compare','lock']);
+export function commandIcon(id: string) {
+  const name=commandIcons[id];
+  return ribbonIcon(officeCommandIcons[id] ?? (primaryIcons.has(name) ? 'icon-'+name : 'icon-mono-'+(name ?? 'file')),16);
+}

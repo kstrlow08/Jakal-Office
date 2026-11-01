@@ -9,9 +9,9 @@ import { JSDOM } from 'jsdom';
 // Execute only the integration module against mocks, without a browser or site.
 const bridge = await fs.readFile('studio/host-bridge.ts', 'utf8');
 const bundled = await build({
-  stdin: { contents: `const {window,document,location,registry,inputHandler,wasm,canvasView,eventBus,documentState,setChromeVisibility,setThemeMode,initPromise,dispatcher,getContext} = env;\n${bridge}`, loader: 'ts', resolveDir: resolve('.') },
+  stdin: { contents: `const {window,document,location,registry,inputHandler,wasm,canvasView,eventBus,documentState,setChromeVisibility,setThemeMode,initPromise,dispatcher,getContext,userSettings,applySavedZoomFitMode} = env;\n${bridge}`, loader: 'ts', resolveDir: resolve('.') },
   bundle: true, format: 'iife', platform: 'node', write: false, logLevel: 'silent',
-  alias: { '@jakal/header-format': resolve('studio/header-format.ts'), '@jakal/automatic-numbering': resolve('studio/automatic-numbering.ts'), '@jakal/hanja': resolve('studio/hanja.ts'), '@wasm': resolve('node_modules/@rhwp/core'), '@jakal/document-tools': resolve('studio/document-tools.ts'), '@jakal/ai-target': resolve('studio/ai-target.ts'), '@jakal/ribbon': resolve('studio/ribbon.ts'), '@noble/hashes': resolve('node_modules/@noble/hashes'), '@jakal/input-profile': resolve('studio/input-profile.ts'), '@jakal/block-insertion': resolve('studio/block-insertion.ts'), '@jakal/file-actions': resolve('studio/file-actions.ts'), '@jakal/table-tools': resolve('studio/table-tools.ts'), '@jakal/object-layout': resolve('studio/object-layout.ts'), '@jakal/image-tools': resolve('studio/image-tools.ts'), '@jakal/font-catalog': resolve('studio/font-catalog.ts'), '@': resolve('../build/rhwp-studio-source/rhwp-studio/src') },
+  alias: { '@jakal/responsive-fit': resolve('studio/responsive-fit.ts'), '@jakal/surface-icons': resolve('studio/surface-icons.ts'), '@jakal/header-format': resolve('studio/header-format.ts'), '@jakal/automatic-numbering': resolve('studio/automatic-numbering.ts'), '@jakal/hanja': resolve('studio/hanja.ts'), '@wasm': resolve('node_modules/@rhwp/core'), '@jakal/document-tools': resolve('studio/document-tools.ts'), '@jakal/ai-target': resolve('studio/ai-target.ts'), '@jakal/ribbon': resolve('studio/ribbon.ts'), '@noble/hashes': resolve('node_modules/@noble/hashes'), '@jakal/input-profile': resolve('studio/input-profile.ts'), '@jakal/block-insertion': resolve('studio/block-insertion.ts'), '@jakal/file-actions': resolve('studio/file-actions.ts'), '@jakal/table-tools': resolve('studio/table-tools.ts'), '@jakal/object-layout': resolve('studio/object-layout.ts'), '@jakal/image-tools': resolve('studio/image-tools.ts'), '@jakal/font-catalog': resolve('studio/font-catalog.ts'), '@': resolve('../build/rhwp-studio-source/rhwp-studio/src') },
 });
 function fixture() {
   const dom = new JSDOM('');
@@ -21,7 +21,7 @@ function fixture() {
   const cursor = { isInHeaderFooter: () => false, isInFootnote: () => false, isInTextBox: () => false };
   const engine = { insertText: (_s, _p, at, text) => JSON.stringify({ ok: true, charOffset: offset = at + Array.from(text).length }), splitParagraph: () => JSON.stringify({ ok: true, paraIdx: ++paragraph }) };
   const parent = { postMessage: (message, origin) => messages.push({ message, origin }) };
-  const env = {
+  const env = {userSettings:{getViewSettings:()=>({zoomFitMode:'fitWidth'})},applySavedZoomFitMode:()=>{},
     window: { parent, addEventListener() {} },
     document: { createElement: tag => dom.window.document.createElement(tag), head: dom.window.document.head, getElementById: () => null, addEventListener: (event, run) => handlers.set(event, run), documentElement: { classList: { contains: () => false, toggle() {}, add() {} } } },
     location: { origin: 'https://unit.test', search: '' }, registry: { get: id => definitions.get(id), register: value => definitions.set(value.id, value) },

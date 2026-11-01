@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { IDBFactory } from 'fake-indexeddb';
-import { createDocumentStore, loadedRecord, recordRevision } from '../online/storage.mjs';
+import { createDocumentStore, loadedRecord, recordRevision, documentSummary } from '../online/storage.mjs';
+
+test('incremental list updates retain only metadata, never document or revision buffers',()=>{
+  const record=fixture();record.history=[{revision:1,bytes:record.bytes}];
+  const summary=documentSummary(record);
+  assert.equal(summary.byteLength,record.bytes.byteLength);
+  assert.equal(summary.bytes,undefined);assert.equal(summary.original,undefined);assert.equal(summary.history,undefined);
+  assert.equal(summary.id,record.id);
+});
 
 function fixture(id = 'doc') {
   const bytes = new Uint8Array(1024 * 1024).fill(17);
