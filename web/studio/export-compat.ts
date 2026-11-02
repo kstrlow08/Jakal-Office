@@ -1,8 +1,10 @@
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
+import { patchZipEntries } from './zip-patch.ts';
 const HP = 'http://www.hancom.co.kr/hwpml/2011/paragraph';
 /** Drop stale note line caches and allocate distinct note identities for Hancom. */
 export function finalizeHwpx(bytes: Uint8Array, sourceDocument?: any): Uint8Array {
-  const entries = unzipSync(bytes), used = new Set<string>(); let changed = false, nextId = 1;
+  const entries = unzipSync(bytes,{filter:entry=>/^Contents\/(section\d+|masterpage\d+)\.xml$/.test(entry.name)}), used = new Set<string>(); let changed = false, nextId = 1;
+  const replacements:Record<string,Uint8Array>={};
   const documents: [string, XMLDocument][] = [];
   for (const [name, value] of Object.entries(entries)) {
     if (!/^Contents\/(section\d+|masterpage\d+)\.xml$/.test(name)) continue;
@@ -43,12 +45,16 @@ export function finalizeHwpx(bytes: Uint8Array, sourceDocument?: any): Uint8Arra
         if (marker.getAttribute('numType') !== expected && ['FOOTNOTE', 'ENDNOTE'].includes(marker.getAttribute('numType') || '')) { marker.setAttribute('numType', expected); dirty = true; }
       }
     }
-    if (dirty) { entries[name] = strToU8(new XMLSerializer().serializeToString(xml)); changed = true; }
+    if (dirty) { replacements[name] = strToU8(new XMLSerializer().serializeToString(xml)); changed = true; }
   }
   if (!changed) return bytes;
   // HWPX requires the uncompressed mimetype entry first.
-  const { mimetype, ...rest } = entries;
-  return zipSync({ mimetype: [mimetype, { level: 0 }], ...rest }, { level: 6 });
+  try{return patchZipEntries(bytes,replacements);}
+  catch{
+    // Keep compatibility for uncommon directory formats; never silently lose entries.
+    const {mimetype,...rest}=unzipSync(bytes);
+    return zipSync({mimetype:[mimetype,{level:0}],...rest,...replacements},{level:6});
+  }
 }
 
 export function layoutSignature(bytes: Uint8Array) {

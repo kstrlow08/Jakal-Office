@@ -46,7 +46,7 @@ export async function versionSiteAssets(directory) {
     const {readdir}=await import('node:fs/promises');
     const wasm=(await readdir(resolve(root,'studio/assets'))).find(name=>/^rhwp_bg-.+\.wasm$/.test(name));
     if(entry&&wasm){
-      const hints='<script id="studio-assets" type="application/json">'+JSON.stringify({module:entry[1],wasm:'/studio/assets/'+wasm})+'</script>';
+      const hints='<script id="studio-assets" type="application/json">'+JSON.stringify({module:entry[1],wasmGzip:'/studio/assets/'+wasm+'.gz'})+'</script>';
       html=html.replace(/<script id="studio-assets" type="application\/json">[^<]*<\/script>/,'');
       html=html.replace('</head>',hints+'\n</head>');
     }

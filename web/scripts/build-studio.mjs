@@ -56,6 +56,7 @@ await build({
     '@jakal/ribbon': resolve(web, 'studio/ribbon.ts'),
     '@jakal/surface-icons': resolve(web, 'studio/surface-icons.ts'),
     '@jakal/responsive-fit': resolve(web, 'studio/responsive-fit.ts'),
+    '@jakal/compressed-wasm': resolve(web, 'studio/compressed-wasm.ts'),
     '@jakal/document-tools': resolve(web, 'studio/document-tools.ts'),
     '@jakal/header-format': resolve(web, 'studio/header-format.ts'),
     '@jakal/automatic-numbering': resolve(web, 'studio/automatic-numbering.ts'),
@@ -151,6 +152,10 @@ await build({
       if (id.replaceAll('\\', '/').endsWith('/core/wasm-bridge.ts')) {
         code = code.replaceAll('\r\n', '\n');
         const tableMethod = '  createTableEx(options: {';
+        const initTarget='const wasmModule = await init() as { memory?: WebAssembly.Memory };';
+        if(!code.includes(initTarget))throw new Error('Pinned WASM initialization changed');
+        code=code.replace(initTarget,'const wasmModule = await initializeCompressedWasm(init,rhwpWasmUrl) as { memory?: WebAssembly.Memory };');
+        code="import { initializeCompressedWasm } from '@jakal/compressed-wasm';\nimport rhwpWasmUrl from '@wasm/rhwp_bg.wasm?url';\n"+code;
         if (!code.includes(tableMethod)) throw new Error('Pinned table creation bridge changed');
         code = `import { insertNestedTable, editNestedTable, type TablePosition, type TableOptions, type StructureOptions } from '@jakal/nested-table';\n` + code.replace(tableMethod, `  editNestedTable(position: TablePosition, operation: string, options?: StructureOptions): TablePosition {
           if (!this.doc) throw new Error('문서가 로드되지 않았습니다');

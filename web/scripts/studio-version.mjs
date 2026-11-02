@@ -10,6 +10,8 @@ export async function integrationHash() {
   hash.update(await readFile(new URL('../studio/format-bar.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/office-icons.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/command-icons.ts', import.meta.url)));
+  hash.update(await readFile(new URL('../studio/zip-patch.ts', import.meta.url)));
+  hash.update(await readFile(new URL('../studio/compressed-wasm.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/surface-icons.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/responsive-fit.ts', import.meta.url)));
   hash.update(await readFile(new URL('../studio/table-picker.ts', import.meta.url)));

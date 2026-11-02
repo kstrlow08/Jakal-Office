@@ -57,6 +57,11 @@ if (jakalHost) registry.register({
   },
 });
 if (jakalHost) {
+  let lastScrollActivity=0;
+  document.addEventListener('scroll',event=>{
+    if((event.target as HTMLElement)?.id!=='scroll-container')return;
+    const now=performance.now();if(now-lastScrollActivity<250)return;lastScrollActivity=now;jakalPost('activity');
+  },{capture:true,passive:true});
   document.addEventListener('compositionstart', () => jakalPost('composition', { composing: true }), true);
   document.addEventListener('compositionend', () => jakalPost('composition', { composing: false }), true);
   document.addEventListener('drop', (event: DragEvent) => {
