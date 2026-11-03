@@ -4,7 +4,9 @@ export function createBackupScheduler({run,onError,clock=globalThis}){
   function cancel(){generation++;if(timer!==null)clock.clearTimeout(timer);if(idle!==null)clock.cancelIdleCallback?.(idle);timer=idle=null;}
   function schedule(bytes=0,composing=false){
     cancel();if(composing)return;
-    const token=generation,delay=bytes>=4*1024*1024?6000:1800;
+    // Large synchronous serializers need a deliberate pause, not a short break
+    // between sentences. Explicit saves and navigation remain immediate.
+    const token=generation,delay=bytes>=4*1024*1024?20000:1800;
     timer=clock.setTimeout(()=>{
       timer=null;
       const begin=()=>{idle=null;if(token!==generation)return;Promise.resolve().then(run).catch(onError);};

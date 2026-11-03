@@ -8,7 +8,8 @@ import init, { HwpDocument } from '@rhwp/core';
 const web=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 await init({module_or_path:fs.readFileSync(path.join(web,'node_modules/@rhwp/core/rhwp_bg.wasm'))});
 const out=path.resolve(web,'../build/editor-regressions/large-documents');fs.mkdirSync(out,{recursive:true});
-const archive=unzipSync(fs.readFileSync(path.resolve(web,'../.artifacts/sites/jakal-office-online/dist/blank.hwpx')));
+const blank=HwpDocument.createEmpty();let archive;
+try{archive=unzipSync(blank.exportHwpx());}finally{blank.free();}
 const section=strFromU8(archive['Contents/section0.xml']);
 const paragraphs=[];const pageTotal=160, perPage=10;
 for(let page=0;page<pageTotal;page++)for(let line=0;line<perPage;line++){

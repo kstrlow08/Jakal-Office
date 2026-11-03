@@ -1,5 +1,5 @@
 // Opt-in local diagnostics. Records timings only, never document text or keys.
-export function installInputProfile(targets: Record<string, object | null>) {
+export function installInputProfile(targets: Record<string, object | null>,resources:()=>unknown=()=>undefined) {
   if (!new URLSearchParams(location.search).has('profile-input')) return;
   const stages: Record<string, { count: number; total: number; max: number }> = {};
   const frames: number[] = [];
@@ -27,7 +27,7 @@ export function installInputProfile(targets: Record<string, object | null>) {
     }
   }
   const publish = () => {
-    document.documentElement.dataset.jakalInputProfile = JSON.stringify({ inputs, frames, samples, longTasks, stages });
+    document.documentElement.dataset.jakalInputProfile = JSON.stringify({ inputs, frames, samples, longTasks, stages,resources:resources() });
   };
   function capture(event: Event) {
     if (!(event.target instanceof Element)) return;

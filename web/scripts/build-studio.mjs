@@ -9,6 +9,7 @@ import { compressAssets } from './compress-assets.mjs';
 import { restoreHostFileCommands } from '../studio/file-command-policy.mjs';
 import { useLineCaretDuringComposition } from '../studio/line-caret-policy.mjs';
 import { repairHeaderInput, repairHeaderText, repairHeaderCommand } from '../studio/compatibility-policy.mjs';
+import { applyPerformancePolicy } from './performance-policy.mjs';
 
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = resolve(web, '..');
@@ -57,6 +58,13 @@ await build({
     '@jakal/surface-icons': resolve(web, 'studio/surface-icons.ts'),
     '@jakal/responsive-fit': resolve(web, 'studio/responsive-fit.ts'),
     '@jakal/compressed-wasm': resolve(web, 'studio/compressed-wasm.ts'),
+    '@jakal/metric-failure-gate': resolve(web, 'studio/metric-failure-gate.ts'),
+    '@jakal/page-geometry': resolve(web, 'studio/page-geometry.ts'),
+    '@jakal/quiet-task': resolve(web, 'studio/quiet-task.ts'),
+    '@jakal/plain-line-patch': resolve(web, 'studio/plain-line-patch.ts'),
+    '@jakal/background-export': resolve(web, 'studio/background-export.ts'),
+    '@jakal/text-width-cache': resolve(web, 'studio/text-width-cache.ts'),
+    '@jakal/replica-measurements': resolve(web, 'studio/replica-measurements.ts'),
     '@jakal/document-tools': resolve(web, 'studio/document-tools.ts'),
     '@jakal/header-format': resolve(web, 'studio/header-format.ts'),
     '@jakal/automatic-numbering': resolve(web, 'studio/automatic-numbering.ts'),
@@ -65,6 +73,8 @@ await build({
   plugins: [{
     name: 'jakal-studio-host', enforce: 'pre',
     transform(code, id) {
+      const originalCode=code;
+      code=applyPerformancePolicy(code,id);
       const path = id.replaceAll('\\', '/');
       if (path.endsWith('/engine/input-handler.ts')) {
         code = repairHeaderInput(code);
@@ -151,6 +161,21 @@ await build({
       }
       if (id.replaceAll('\\', '/').endsWith('/core/wasm-bridge.ts')) {
         code = code.replaceAll('\r\n', '\n');
+        const installWidth='    let lastFont = \'\';';
+        if(!code.includes(installWidth))throw Error('Pinned width context changed');
+        code=code.replace(installWidth,installWidth+`\n    const widthCache=new TextWidthCache();
+    onReplicaFontsChanged(()=>{widthCache.clear();lastFont='';});
+    document.fonts.addEventListener('loadingdone',invalidateReplicaFonts);
+    document.addEventListener('jakal-font-loaded',invalidateReplicaFonts);`);
+        const width='return ctx!.measureText(text).width;';
+        if(!code.includes(width))throw Error('Pinned width measurement changed');
+        code=code.replace(width,'return rememberReplicaWidth(font,text,widthCache.measure(ctx!.font,text,()=>ctx!.measureText(text).width));');
+        const create='nextDoc = createDocument();';
+        if(!code.includes(create))throw Error('Pinned document replica boundary changed');
+        code=code.replace(create,'const parseStarted=performance.now();\n      '+create+'\n      document.documentElement.dataset.jakalParseMs=String(Math.round(performance.now()-parseStarted));\n      registerBackgroundDocument(nextDoc,data,nextFileName);');
+        code=code.replace('invalidateCanvasMetricFonts(): void {','invalidateCanvasMetricFonts(): void {\n    invalidateReplicaFonts();');
+        code=code.replace("const nextFileName = fileName ?? 'document.hwp';","invalidateReplicaFonts();\n    const nextFileName = fileName ?? 'document.hwp';");
+        code="import { TextWidthCache } from '@jakal/text-width-cache';\nimport { rememberReplicaWidth,invalidateReplicaFonts,onReplicaFontsChanged } from '@jakal/replica-measurements';\nimport { registerBackgroundDocument } from '@jakal/background-export';\n"+code;
         const tableMethod = '  createTableEx(options: {';
         const initTarget='const wasmModule = await init() as { memory?: WebAssembly.Memory };';
         if(!code.includes(initTarget))throw new Error('Pinned WASM initialization changed');
@@ -194,19 +219,25 @@ ${tableMethod}`);
         if (a < 0 || b < 0 || !code.includes('export class CanvasView {')) throw new Error('Pinned mutation paint boundary changed');
         code = code.slice(0, a) + `  private async refreshPagesForMutation(): Promise<void> {
           const generation = this.wasm.documentGeneration;
+          const revision=++this.jakalGeometryRevision;
           const selected = await this.selectMutationRevision();
           if (!selected || !this.rendererSession.isCurrent(selected.selection)) return;
           this.jakalMutationPaint.schedule(() => {
             if (this.disposed || generation !== this.wasm.documentGeneration) return;
-            this.refreshPages();
-            this.eventBus.emit('document-layout-refreshed', { source: 'mutation' });
+            const current=()=>!this.disposed&&generation===this.wasm.documentGeneration&&revision===this.jakalGeometryRevision;
+            void collectPageGeometry(this.wasm.pageCount,i=>this.wasm.getPageInfo(i),current).then(pages=>{
+              if(!pages||!current())return;
+              this.refreshPages(pages);
+              this.eventBus.emit('document-layout-refreshed', { source: 'mutation' });
+            });
           });
         }
 ` + code.slice(b);
-        code = code.replace('export class CanvasView {', 'export class CanvasView {\n  private jakalMutationPaint = new FrameTask();');
-        code = code.replace('private reset(): void {', 'private reset(): void {\n    this.jakalMutationPaint.cancel();');
+        code = code.replace('export class CanvasView {', 'export class CanvasView {\n  private jakalGeometryRevision = 0;\n  private jakalMutationPaint = new FrameTask();');
+        code = code.replace('private reset(): void {', 'private reset(): void {\n    this.jakalGeometryRevision++;\n    this.jakalMutationPaint.cancel();');
         return `import { FrameTask } from '@jakal/frame-task';\n` + code;
       }
+      if(code!==originalCode)return code;
     },
     transformIndexHtml(html) {
       return html.replace('<title>rhwp-studio</title>', '<title>Jakal 문서 편집기</title>').replace('src="/theme-init.js"', 'src="/studio/theme-init.js"').replace('src="/locale-init.js"', 'src="/studio/locale-init.js"').replace('href="/favicon.ico"', 'href="/studio/favicon.ico"').replaceAll('href="/icons/', 'href="/studio/icons/').replace('</head>', '<link rel="stylesheet" href="/studio/jakal.css"></head>');
@@ -223,6 +254,7 @@ await cp(resolve(web, 'public/studio-data'), resolve(out, 'data'), { recursive: 
 await mkdir(resolve(out, 'licenses'), {recursive:true});
 await cp(resolve(web, 'public/licenses/Unicode-3.0.txt'), resolve(out, 'licenses/Unicode-3.0.txt'));
 await cp(resolve(web, 'public/licenses/octicons-MIT.txt'), resolve(out, 'licenses/octicons-MIT.txt'));
+await cp(resolve(web, 'node_modules/@xmldom/xmldom/LICENSE'), resolve(out, 'licenses/xmldom-MIT.txt'));
 await cp(resolve(source, 'LICENSE'), resolve(out, 'LICENSE-rhwp.txt'));
 await writeFile(resolve(out, 'jakal.css'), css);
 await compressAssets(out);

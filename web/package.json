@@ -16,12 +16,18 @@
     "@noble/hashes": "2.4.0",
     "@rhwp/core": "0.8.7",
     "@rhwp/editor": "0.8.7",
+    "@xmldom/xmldom": "0.9.12",
     "canvaskit-wasm": "0.42.0",
     "dompurify": "3.4.17",
     "fflate": "0.8.3",
+    "firebase": "12.19.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "overrides": {
+    "@firebase/app": "0.16.2",
+    "@firebase/app-compat": "0.5.18"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

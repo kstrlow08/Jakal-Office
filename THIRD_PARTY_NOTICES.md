@@ -53,3 +53,7 @@ If you redistribute this repository or a derivative:
 - keep the top-level `LICENSE` with project-authored code
 - confirm that you have the right to redistribute included sample documents
 - avoid using third-party product or trademark names in a way that suggests endorsement
+
+Worker XML DOM: @xmldom/xmldom 0.9.12 (MIT). Copyright Christopher J. Brody, @jindw and contributors. Full license: web/public/licenses/xmldom-MIT.txt. Source: https://github.com/xmldom/xmldom.
+
+Google sign-in and AI SDK: Firebase JavaScript SDK 12.19.0, Apache-2.0, Google LLC and Firebase contributors. Full license: web/public/licenses/firebase-Apache-2.0.txt. Modular browser bundle includes upstream legal notices.

@@ -1,4 +1,4 @@
-import manifest from './octicons-manifest.json';
+import manifest from './octicons-manifest.json' with { type: 'json' };
 import { octiconsData } from './octicons-data.ts';
 const templates = new WeakMap<Document, Map<string,SVGSVGElement>>();
 

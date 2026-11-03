@@ -13,7 +13,11 @@ import { installSurfaceIcons } from '@jakal/surface-icons';
 import { installResponsiveFit } from '@jakal/responsive-fit';
 import { clearHeaderTypingProps } from '@jakal/header-format';
 import { installAutomaticNumbering } from '@jakal/automatic-numbering';
-void initPromise.then(() => installInputProfile({ wasm, input: inputHandler, view: canvasView }));
+void initPromise.then(() => installInputProfile({ wasm, input: inputHandler, view: canvasView },()=>({
+  wasmBytes:wasm.getWasmLinearMemoryBytes?.(),
+  surfaceCache:canvasView?.getPageSurfaceCacheDiagnostics?.(),
+  jsHeapBytes:(performance as any).memory?.usedJSHeapSize??null,
+})));
 const jakalHost = window.parent !== window;
 if (jakalHost) installHostFileActions(registry, action => jakalPost('file-action', { action }));
 if (jakalHost) installTableTools(registry, () => inputHandler);
@@ -57,11 +61,12 @@ if (jakalHost) registry.register({
   },
 });
 if (jakalHost) {
-  let lastScrollActivity=0;
-  document.addEventListener('scroll',event=>{
-    if((event.target as HTMLElement)?.id!=='scroll-container')return;
-    const now=performance.now();if(now-lastScrollActivity<250)return;lastScrollActivity=now;jakalPost('activity');
-  },{capture:true,passive:true});
+  let lastActivity=0;
+  const activity=(event:Event)=>{
+    if(event.type==='scroll'&&(event.target as HTMLElement)?.id!=='scroll-container')return;
+    const now=performance.now();if(now-lastActivity<80)return;lastActivity=now;jakalPost('activity');
+  };
+  for(const type of ['scroll','keydown','beforeinput','pointerdown'])document.addEventListener(type,activity,{capture:true,passive:true});
   document.addEventListener('compositionstart', () => jakalPost('composition', { composing: true }), true);
   document.addEventListener('compositionend', () => jakalPost('composition', { composing: false }), true);
   document.addEventListener('drop', (event: DragEvent) => {
