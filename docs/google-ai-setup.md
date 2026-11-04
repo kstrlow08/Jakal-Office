@@ -1,5 +1,7 @@
 # Jakal Office Google 로그인·AI 편집 활성화
 
+> 현재 기본 연결은 **Google 로그인 + Cloudflare Workers AI Free**입니다. 결제 없이 설정하는 최신 절차는 [Cloudflare 무료 AI 안내](cloudflare-ai-setup.md)를 따르세요. 아래 Gemini 연결 설명은 이전 구현 기록이며 현재 사이트의 생성 경로로 사용하지 않습니다.
+
 코드는 Firebase Authentication의 Google 로그인, Firebase AI Logic의 Gemini 호출, App Check(reCAPTCHA Enterprise), 원문 diff와 선택 적용을 사용합니다. 방문자는 API 키를 입력하지 않습니다. AI 사용량은 운영자 Firebase 프로젝트에 귀속되며 개인 Gemini 웹 구독의 사용 한도를 가져오는 연결이 아닙니다.
 
 현재 사이트는 정적 Sites 배포입니다. Python 서버나 MCP는 필요하지 않습니다. Firebase 설정이 없을 때는 로그인·생성을 비활성화하고 설정 안내를 표시합니다. 문서 열기·일반 편집은 그대로 사용할 수 있습니다.
@@ -18,10 +20,19 @@
    `jakal-office-online.ahnd6474.chatgpt.site`
 
 3. 로컬 테스트가 필요한 경우에만 `localhost`와 `127.0.0.1`도 추가합니다.
-4. 기본 authDomain은 `PROJECT_ID.firebaseapp.com`을 사용합니다. 직접 OAuth 웹 클라이언트를 구성한 경우 승인된 JavaScript origin은 `https://jakal-office-online.ahnd6474.chatgpt.site`, 리디렉션 URI는 `https://PROJECT_ID.firebaseapp.com/__/auth/handler`입니다. 기본 Firebase Google 공급자 설정은 관련 클라이언트를 자동으로 구성하므로 별도 OAuth 클라이언트 비밀 키를 사이트에 제공할 필요가 없습니다.
+4. 기본 authDomain `PROJECT_ID.firebaseapp.com`은 브라우저의 타사 저장소 차단으로 인증 복귀에 실패할 수 있습니다. 이 사이트에는 공식 Firebase Google 인증 도우미를 `/__/auth/`에 제공하는 같은 도메인 경로를 준비합니다. OAuth 웹 클라이언트의 승인된 리디렉션 URI에 `https://jakal-office-online.ahnd6474.chatgpt.site/__/auth/handler`를 **먼저** 추가한 뒤 공개 설정의 authDomain을 `jakal-office-online.ahnd6474.chatgpt.site`로 변경하고 재배포합니다. 기존 Firebase 반환 URI는 유지합니다. OAuth 클라이언트 비밀 키는 사이트에 제공하지 않습니다.
 5. Google Auth Platform이 테스트 모드라면 먼저 사용할 Google 계정을 Test users에 추가합니다. 일반 공개 로그인 전에는 Audience/Publishing status를 확인합니다. 동의 화면과 필요한 정책 정보는 운영자 계정에서 완료합니다.
 
+### 정적 Sites의 인증 도우미 유지 관리
+
+- `.artifacts/sites/jakal-office-online`에서 `node sync-auth-helpers.mjs`를 실행하면 공식 Firebase 도우미 7개를 갱신하고 출처·해시를 기록합니다. `__/firebase/init.json`은 기존 공개 웹앱 설정에서 생성합니다. 이 프로젝트에는 Firebase Hosting 배포가 없어 원격 init.json은 제공되지 않습니다.
+- Google 로그인에만 사용합니다. Apple·SAML은 이 정적 도우미 경로의 지원 대상이 아닙니다. Firebase 인증 업데이트 때 공식 도우미도 다시 동기화하고 배포합니다.
+- 같은 도메인을 활성화하면 팝업 대신 전체 페이지 로그인으로 이동하며, 돌아온 뒤 기존 문서를 열고 AI 패널을 복원합니다. 복귀 표식에는 시각만 저장하며 10분 후 만료됩니다. 토큰·문서 내용은 표식에 저장하지 않습니다.
+- 정적 호스팅에서 `/__/auth/handler`와 `/__/auth/iframe`이 리디렉션 없이 HTML로 제공되는지 검증한 뒤 활성화합니다. [공식 타사 저장소 대응 안내](https://firebase.google.com/docs/auth/web/redirect-best-practices)를 참고하세요.
+
 ## 3. Firebase AI Logic
+
+운영 중인 `jakal-office` 프로젝트는 2026-11-04 실제 호출에서 Google의 `The Gemini API free tier is not available for this project` 응답(HTTP 403)을 반환했습니다. 로그인·App Check 통과만으로 무료 AI 사용이 보장되지는 않습니다. 이 상태는 API 키나 보안 검사 우회로 해결할 수 없으며, Google이 요구하는 결제 연결·유료 등급 전환을 운영자가 먼저 결정해야 합니다. 현재 결제는 연결하지 않았습니다. 선결제 계정은 최소 크레딧 구매를 요구할 수 있으므로 [공식 결제 안내](https://aistudio.google.com/docs/billing)를 확인하고 결제·선결제는 계정 소유자가 직접 진행합니다.
 
 1. AI Services → AI Logic → Get started에서 Gemini Developer API를 선택하고 콘솔이 안내하는 초기 설정을 완료합니다. 기존 서버용 Gemini 키를 방문자에게 배포하지 않습니다.
 2. 모델은 현재 공식 권장 Flash인 `gemini-3.8-flash`를 기본으로 사용합니다. 프로젝트·지역·할당량에서 실제 사용 가능한지 콘솔에서 확인합니다. 모델 이름은 설정 JSON으로 변경할 수 있습니다.
@@ -30,10 +41,10 @@
 
 ## 4. App Check — 공개 서비스 필수
 
-1. Google Cloud reCAPTCHA Enterprise에서 웹사이트용 키를 만듭니다. 도메인에 `jakal-office-online.ahnd6474.chatgpt.site`를 등록하고, App Check 문서에서 안내하는 score-based 웹 통합 설정을 사용합니다. 테스트 도메인은 실제로 사용할 때만 추가합니다.
+1. Google Cloud reCAPTCHA Enterprise에서 웹사이트용 키를 만듭니다. 또는 공식 [reCAPTCHA 관리 콘솔](https://www.google.com/recaptcha/admin)에서 기존 Firebase 프로젝트를 선택하고 점수 기반(v3) 키를 등록할 수 있습니다. 도메인에 `jakal-office-online.ahnd6474.chatgpt.site`를 등록하고, App Check 문서에서 안내하는 score-based 웹 통합 설정을 사용합니다. 운영용 키에 localhost를 추가하지 않습니다.
 2. Firebase Console → App Check → Apps에서 위 Firebase 웹앱에 reCAPTCHA Enterprise 공급자를 등록합니다. 이때 제공되는 공개 사이트 키가 `appCheckSiteKey`입니다.
 3. App Check → APIs → Firebase AI Logic을 Enforced로 설정합니다. 현재 공식 안내상 2026-11-02부터 AI Logic에 App Check 적용이 필수입니다. 이 코드에는 검사를 우회하는 디버그 토큰을 배포하지 않습니다.
-4. 기본 토큰 방식으로 구현했으므로 Replay protection은 Disabled로 둡니다. 제한 사용 토큰을 별도로 구현하지 않은 상태에서 재생 방지만 먼저 활성화하지 않습니다.
+4. 모델 요청마다 SDK의 `useLimitedUseAppCheckTokens: true`로 제한 사용 토큰을 발급합니다. 현재 프로젝트는 재생 보호를 ‘모니터링만’으로 두고 기본 App Check 검사는 적용합니다. 모니터링 모드에서도 일반 세션 토큰은 AI 프로젝트 활성 판정에서 검증된 요청으로 인정되지 않아 403이 지속될 수 있으므로 세션 토큰으로 되돌리지 않습니다. [공식 403 안내](https://firebase.google.com/docs/ai-logic/error-codes)를 참고하세요. 재생 보호의 강제 적용은 별도 검토 후 설정합니다.
 
 ## 5. 코드에 전달할 공개 설정
 
@@ -71,5 +82,18 @@ SDK 재번들링(코드 변경 시만): `node web/scripts/build-google-ai.mjs`. 
 5. 팝업 차단은 이 사이트 팝업 허용 후 재시도합니다. `unauthorized-domain`은 Auth 승인 도메인, App Check 오류는 공급자·사이트 키·등록 도메인을 확인합니다. 키 값을 포함한 원본 오류는 방문자에게 노출하지 않습니다.
 
 세션은 이 브라우저 탭 세션에 보관합니다. 문서는 기존처럼 방문자의 브라우저에 저장하며, 생성 요청 시 선택한 문단과 수정 지시만 Firebase AI Logic에 보냅니다. 요청 취소는 브라우저 HTTP 요청과 응답 대기를 취소하며 이미 시작한 서버 처리나 과금을 소급 취소하지 않습니다.
+
+## 7. 운영자가 확인할 리스크
+
+- **무료 AI의 데이터 처리:** 무료 Gemini API에서는 입력·응답이 Google 제품 개선과 사람 검토에 사용될 수 있습니다. 개인정보·민감정보·기밀 문서를 전송하지 않습니다. 사이트의 AI 창에도 이 조건을 안내합니다. AI Monitoring을 꺼도 제공자 자체의 데이터 처리 조건은 바뀌지 않습니다.
+- **이용 대상·지역:** Gemini API 약관은 운영자 18세 이상, 18세 미만 대상 또는 접근 가능성이 높은 서비스의 제한을 규정합니다. EEA·스위스·영국에 API 클라이언트를 제공할 때는 유료 서비스만 허용합니다. Google 로그인이나 App Check는 연령·지역 확인을 대신하지 않습니다.
+- **비용·할당량:** 결제 계정이 없는 Spark는 무료 할당량을 사용하며, 초과하면 AI 호출이 제한될 수 있습니다. 나중에 Cloud Billing을 연결하면 Gemini API 사용은 종량제로 바뀝니다. 방문자의 Gemini 구독과 무관하게 운영자 프로젝트가 사용량을 부담합니다. App Check 증명 제공자의 한도·비용도 따로 확인합니다.
+- **남용:** Google 로그인과 App Check는 남용을 줄이지만 완전히 차단하지는 않습니다. 프로젝트와 사용자별 서버 할당량을 제한합니다. 브라우저의 글자 수 제한·중복 요청 차단은 보안 경계가 아닙니다. Firebase AI Logic의 기본 사용자별 제한은 100 RPM이므로 문서 교정 용도에 맞게 낮추는 것이 좋습니다.
+- **학교·조직 계정:** 조직에 생성한 프로젝트에는 조직 관리자의 정책과 계정 수명 주기가 적용됩니다. 졸업·계정 중지·조직 정책 변경으로 운영 권한이나 서비스 지속성이 영향을 받을 수 있습니다. 로그인 동의 화면의 지원 이메일은 이용자에게 표시될 수 있습니다.
+- **수정 결과·문서 보관:** AI가 의미·수치·고유명사를 잘못 바꿀 수 있으므로 diff를 검토한 뒤 적용합니다. 브라우저 저장소 삭제·기기 변경은 문서 손실로 이어질 수 있어 완성 문서는 내려받아 별도 보관합니다.
+
+대한민국 Google Cloud 최초 이용 화면은 약관 동의와 별도로 현재 또는 향후 상업적 사용 계획의 확인을 요구할 수 있습니다. 실제 용도와 다른 선언을 하지 않으며, 이 확인을 무료 체험·결제 계정 신청과 혼동하지 않습니다.
+
+관련 근거: [Gemini API 약관·데이터 처리](https://ai.google.dev/gemini-api/terms), [AI Logic 요금](https://firebase.google.com/docs/ai-logic/pricing), [서버 할당량](https://firebase.google.com/docs/ai-logic/quotas).
 
 공식 근거: [Google 로그인](https://firebase.google.com/docs/auth/web/google-signin), [AI Logic 시작](https://firebase.google.com/docs/ai-logic/get-started?platform=web), [인증 사용자만 허용](https://firebase.google.com/docs/ai-logic/auth-mode), [App Check](https://firebase.google.com/docs/ai-logic/app-check), [reCAPTCHA Enterprise](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider), [지원 모델](https://firebase.google.com/docs/ai-logic/models).

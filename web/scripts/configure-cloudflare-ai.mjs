@@ -1,0 +1,11 @@
+import{readFile,writeFile}from'node:fs/promises';import{resolve,dirname}from'node:path';import{fileURLToPath}from'node:url';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..'),site=resolve(root,'.artifacts/sites/jakal-office-online');
+const{validateFreeConfig}=await import(new URL('../../.artifacts/sites/jakal-office-online/dist/cloudflare-ai.js',import.meta.url));
+if(process.argv[2]!=='--endpoint'||!process.argv[3])throw Error('Usage: node web/scripts/configure-cloudflare-ai.mjs --endpoint https://WORKER.ACCOUNT.workers.dev/edit');
+const file=resolve(site,'dist/google-ai-config.json'),input=JSON.parse(await readFile(file,'utf8'));
+const config=validateFreeConfig({...input,enabled:true,provider:'cloudflare',endpoint:process.argv[3]});
+const health=new URL(config.endpoint);health.pathname='/health';
+const response=await fetch(health,{redirect:'error',signal:AbortSignal.timeout(15000)}),status=await response.json();
+if(!response.ok||status.provider!=='cloudflare'||status.freeOnly!==true||status.ready!==true||status.model!=='@cf/google/gemma-4-26b-a4b-it')throw Error('Worker AI and quota bindings are not ready. No Site settings changed.');
+if(!process.argv.includes('--check-only'))await writeFile(file,JSON.stringify({enabled:true,provider:'cloudflare',...config},null,2)+'\n');
+console.log('Cloudflare free AI endpoint validated. No secret values printed. Publish the Site to activate changes.');

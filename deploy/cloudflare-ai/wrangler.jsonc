@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jakal-office-free-ai",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-11-04",
+  "workers_dev": true,
+  "preview_urls": false,
+  "ai": {"binding": "AI"},
+  "durable_objects": {"bindings": [{"name": "LIMITS", "class_name": "EditLimits"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["EditLimits"]}],
+  "vars": {
+    "ALLOWED_ORIGIN": "https://jakal-office-online.ahnd6474.chatgpt.site",
+    "FIREBASE_PROJECT_ID": "jakal-office",
+    "FIREBASE_PROJECT_NUMBER": "847923650853",
+    "FIREBASE_APP_ID": "1:847923650853:web:790af9c3f4a2f9bba1facc"
+  },
+  "observability": {"enabled": false}
+}
