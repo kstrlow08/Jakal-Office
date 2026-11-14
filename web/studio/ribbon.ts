@@ -37,7 +37,7 @@ export const ribbonTabs: Record<string, Group[]> = {
   ],
   insert: [
     { label: '개체', items: [['table:create', '표', 'icon-table'], ['insert:image', '그림', 'icon-image'], ['insert:shape', '도형', 'icon-shape'], ['insert:textbox', '글상자', 'icon-textbox'], ['insert:equation', '수식'], ['insert:field', '누름틀']] },
-    { label: '문자·참조', items: [['insert:symbols', '문자표', 'icon-symbols'], ['insert:hanja', '한자 변환'], ['insert:hyperlink', '하이퍼링크'], ['insert:bookmark', '책갈피']] },
+    { label: '문자·참조', items: [['insert:symbols', '문자표', 'icon-symbols'], ['insert:hanja', '한자 변환'], ['insert:hyperlink', '하이퍼링크'], ['insert:bookmark', '책갈피'], ['jakal:insert-date', '날짜·시간']] },
     { label: '주석', items: [['insert:footnote', '각주', 'icon-footnote'], ['insert:endnote', '미주', 'icon-endnote'], ['insert:endnote-shape', '각주·미주 모양'], ['insert:note-close', '주석 편집 끝']] },
     { label: '쪽 정보', items: [['page:header-create', '머리말'], ['page:footer-create', '꼬리말'], ['page:insert-field-pagenum', '현재 쪽 번호'], ['page:insert-field-totalpage', '전체 쪽 수'], ['page:insert-field-filename', '파일 이름']] },
     { label: '선택 개체', items: [['insert:caption-toggle', '캡션 넣기·빼기'], ['insert:chart-data-edit', '차트 데이터'], ['insert:equation-edit', '수식 고치기'], ['insert:picture-props', '그림 속성']] },
@@ -57,7 +57,7 @@ export const ribbonTabs: Record<string, Group[]> = {
   ],
   table: [
     { label: '본문 배치', items: [['table:inline','글자처럼 취급'],['table:floating','본문과 어울리기']] },
-    { label: '표·셀', items: [['table:create', '표 만들기', 'icon-table'], ['table:create-nested', '표 안에 표'], ['table:parent-cell', '상위 칸으로'], ['table:cell-props', '표·셀 속성'], ['table:border-each', '테두리·배경']] },
+    { label: '표·셀', items: [['table:create', '표 만들기', 'icon-table'], ['table:create-nested', '표 안에 표'], ['table:parent-cell', '상위 칸으로'], ['jakal:exit-table', '표 밖으로'], ['table:cell-props', '표·셀 속성'], ['table:border-each', '테두리·배경']] },
     { label: '줄·칸', items: [['table:insert-row-above', '위에 줄'], ['table:insert-row-below', '아래에 줄'], ['table:insert-col-left', '왼쪽에 칸'], ['table:insert-col-right', '오른쪽에 칸'], ['table:insert-row-col', '줄·칸 추가…'], ['table:delete-row-col', '줄·칸 지우기…']] },
     { label: '선택·크기', items: [['table:select-cells', '셀 선택'], ['table:cell-split', '칸 나누기'], ['table:cell-merge', '칸 합치기'], ['table:cell-height-equal', '높이 같게'], ['table:cell-width-equal', '너비 같게']] },
     { label: '계산·표시', items: [['table:block-formula', '계산식'], ['table:block-sum', '블록 합계'], ['table:block-avg', '블록 평균'], ['table:block-product', '블록 곱'], ['table:thousand-sep', '천 단위 쉼표'], ['table:decimal-add', '자릿점 넣기'], ['table:decimal-remove', '자릿점 빼기']] },
@@ -76,6 +76,7 @@ export const ribbonTabs: Record<string, Group[]> = {
   ],
   tool: [
     { label: '설정', items: [['tool:options', '환경 설정', 'icon-settings'], ['view:office-fonts', '글꼴 추가', 'icon-font']] },
+    { label: '도움말', items: [['jakal:shortcuts', '단축키']] },
     { label: '찾기·검토', items: [['jakal:workbench', '도구 찾기', 'icon-find'], ['jakal:ai-edit', 'AI 수정·비교', 'icon-sparkles'], ['jakal:compare', '문서 비교', 'icon-compare']] },
     { label: '개체 배치', items: [['format:object-properties', '개체 속성', 'icon-obj-props'], ['insert:arrange-front', '맨 앞으로'], ['insert:arrange-back', '맨 뒤로'], ['insert:arrange-forward', '앞으로'], ['insert:arrange-backward', '뒤로']] },
     { label: '회전·묶기', items: [['insert:rotate-cw', '오른쪽 90°'], ['insert:rotate-ccw', '왼쪽 90°'], ['insert:flip-horz', '좌우 뒤집기'], ['insert:flip-vert', '상하 뒤집기'], ['insert:group-shapes', '개체 묶기'], ['insert:ungroup-shapes', '묶기 풀기']] },

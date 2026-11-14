@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
 import { HwpDocument, initSync } from '@rhwp/core';
-import { insertNestedTable, parentTableCell, editNestedTable, insertCellPicture, ensureTrailingParagraph } from '../studio/nested-table.ts';
+import { insertNestedTable, parentTableCell, editNestedTable, insertCellPicture, insertCellEquation, ensureTrailingParagraph } from '../studio/nested-table.ts';
 import { deflateSync } from 'node:zlib';
 import { mathDocument } from './document-fixtures.mjs';
 
@@ -285,4 +285,25 @@ test('an inline table that ends the section gets a following paragraph so the ca
   assert.equal(ensureTrailingParagraph(doc, 0, table.paraIdx), false, 'only the last paragraph needs one');
   assert.equal(doc.getParagraphCount(0), count + 1);
   exportBytes(doc);
+});
+
+test('equations go inside table cells, including nested tables, and survive export', t => {
+  const { doc, position } = fixture(t);
+  doc.insertTextInCell(0, position.parentParaIndex, position.controlIndex, 0, 0, 0, '넓이');
+  position.charOffset = 2;
+  const count = doc.getParagraphCount(0);
+  const cursor = insertCellEquation(doc, position, { script: 'pi r^{2}', fontSize: 1000, color: 0 });
+  assert.equal(cursor.charOffset, 3, 'the caret lands after the equation');
+  assert.equal(doc.getParagraphCount(0), count, 'no scratch paragraph or floating copy is left in the body');
+  const equation = JSON.parse(doc.getEquationProperties(0, position.parentParaIndex, position.controlIndex, 0, 0));
+  assert.equal(equation.script, 'pi r^{2}');
+  assert.equal(equation.fontSize, 1000);
+  const nested = insertNestedTable(doc, { ...position, cellIndex: 1, cellParaIndex: 0, charOffset: 0, cellPath: undefined }, 1, 1);
+  const inner = insertCellEquation(doc, nested, { script: '{1} over {2}', fontSize: 1200, color: 0 });
+  assert.equal(inner.cellPath.length, 2);
+  const reopened = new HwpDocument(exportBytes(doc));
+  t.after(() => reopened.free());
+  const scripts = JSON.parse(reopened.getControls()).filter(control => control.ctrlId === 'eqed');
+  assert.equal(scripts.length, 2);
+  assert.throws(() => insertCellEquation(doc, position, { script: ' ', fontSize: 1000, color: 0 }), /수식 내용/);
 });

@@ -14,31 +14,43 @@ function fixture(t) {
   return { dom, submit };
 }
 
-test('table dialog applies presets, remembers sizes and returns focus on apply or cancel', t => {
+test('table dialog takes typed sizes without sample presets, remembers them and returns focus', t => {
   const { dom, submit } = fixture(t);
   const calls = []; let focuses = 0;
   let dialog = showTableDialog('split', (...args) => calls.push(args), () => focuses++);
   assert.match(dialog.textContent, /칸 나누기/);
+  assert.equal(dialog.querySelector('.jakal-table-presets'), null, 'no example sizes');
   assert.equal(document.activeElement.name, 'rows');
-  dialog.querySelector('[data-rows="5"]').click();
-  assert.match(dialog.querySelector('[role="status"]').textContent, /5줄 × 2칸 · 10셀/);
+  const set = (name, value) => { const input = dialog.querySelector(`[name="${name}"]`); input.value = value; input.dispatchEvent(new dom.window.Event('input', { bubbles: true })); };
+  set('rows', '5'); set('cols', '2');
   submit(dialog);
   assert.deepEqual(calls, [[5, 2]]); assert.equal(focuses, 1); assert.equal(dialog.isConnected, false);
   dialog = showTableDialog('split', () => assert.fail('cancel must not apply'), () => focuses++);
   assert.equal(dialog.querySelector('[name="rows"]').value, '5');
+  assert.equal(dialog.querySelector('.jakal-table-inline').hidden, true);
   dialog.dispatchEvent(new dom.window.Event('cancel', { cancelable: true }));
   assert.equal(dialog.isConnected, false); assert.equal(focuses, 2);
 });
 
-test('a separate nested-table dialog shows an inset table and its own width', t => {
+test('a new body table can be created as a floating table', t => {
+  const { submit } = fixture(t), calls = [];
+  const dialog = showTableDialog(false, (...args) => calls.push(args), () => {});
+  const inline = dialog.querySelector('[name="inline"]');
+  assert.equal(dialog.querySelector('.jakal-table-inline').hidden, false);
+  assert.equal(inline.checked, true);
+  inline.checked = false; submit(dialog);
+  assert.deepEqual(calls, [[2, 2, undefined, false]]);
+  assert.equal(showTableDialog(false, () => {}, () => {}).querySelector('[name="inline"]').checked, false, 'the choice is remembered');
+});
+
+test('a separate nested-table dialog asks for its own width', t => {
   const { dom, submit } = fixture(t), calls = [];
   const dialog = showTableDialog(true, (...args) => calls.push(args), () => {});
-  assert.match(dialog.querySelector('h2').textContent, /표 안에 새 표/);
-  assert.equal(dialog.querySelector('.jakal-table-presets').hidden, true);
-  assert.equal(dialog.querySelector('.jakal-nested-preview').hidden, false);
+  assert.match(dialog.querySelector('h2').textContent, /표 안에 표/);
+  assert.equal(dialog.querySelector('.jakal-nested-preview'), null);
+  assert.equal(dialog.querySelector('.jakal-table-inline').hidden, true);
   const width = dialog.querySelector('[name="width"]');
   assert.equal(width.value, '75'); width.value = '60'; width.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  assert.equal(dialog.querySelector('.jakal-nested-preview > div').style.width, '60%');
   submit(dialog); assert.deepEqual(calls, [[2, 2, 60]]);
 });
 
@@ -94,7 +106,8 @@ test('the former size picker now splits the selected cell without creating a tab
   const dialog = document.querySelector('dialog');
   assert.equal(dialog.querySelector('h2').textContent, '칸 나누기');
   assert.equal(dialog.querySelector('.jakal-nested-width').hidden, true);
-  dialog.querySelector('[data-rows="2"]').click(); submit(dialog);
+  for (const name of ['rows', 'cols']) { const input = dialog.querySelector(`[name="${name}"]`); input.value = '2'; input.dispatchEvent(new document.defaultView.Event('input', { bubbles: true })); }
+  submit(dialog);
   assert.deepEqual(calls, [[0, 1, 2, 1, 1, 2, 2, false, false]]);
 });
 

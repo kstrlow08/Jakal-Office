@@ -14,72 +14,66 @@ function validSize(rows: number, cols: number) {
   return [rows, cols].every(n => Number.isInteger(n) && n > 0 && n <= 100) && rows * cols <= 2500;
 }
 
-export function showTableDialog(mode: boolean | 'split', apply: (rows: number, cols: number, widthPercent?: number) => void, focus: () => void) {
-  const nested = mode === true, split = mode === 'split';
+/** apply(rows, cols, widthPercent?, treatAsChar?): split passes rows/cols, a nested table
+ * adds its width, and a new body table adds whether it flows like a character. */
+export function showTableDialog(mode: boolean | 'split', apply: (rows: number, cols: number, widthPercent?: number, treatAsChar?: boolean) => void, focus: () => void) {
+  const nested = mode === true, split = mode === 'split', body = !nested && !split;
   const storage = split ? 'jakal-cell-split-size' : nested ? 'jakal-nested-table-size' : preference;
-  let size = { rows: split ? 1 : 2, cols: 2, width: 75 };
+  let size = { rows: split ? 1 : 2, cols: 2, width: 75, inline: true };
   try {
     const previous = JSON.parse(localStorage.getItem(storage) || 'null');
     if (previous && validSize(previous.rows, previous.cols)) size = { ...size, rows: previous.rows, cols: previous.cols,
-      width: Number.isFinite(previous.width) && previous.width >= 10 && previous.width <= 100 ? previous.width : 75 };
+      width: Number.isFinite(previous.width) && previous.width >= 10 && previous.width <= 100 ? previous.width : 75,
+      inline: previous.inline !== false };
   } catch { /* Preferences are optional. */ }
   const dialog = document.createElement('dialog');
   dialog.className = 'jakal-table-dialog';
   dialog.setAttribute('aria-labelledby', 'jakal-table-title');
   dialog.innerHTML = `<form>
-    <h2 id="jakal-table-title"></h2><p class="jakal-table-hint"></p>
-    <div class="jakal-nested-preview" aria-label="바깥 표 칸 안에 놓이는 별도의 새 표"><div>새 표</div></div>
-    <div class="jakal-table-presets" role="group" aria-label="자주 쓰는 표 크기">
-      <button type="button" data-rows="1" data-cols="1">1 × 1</button><button type="button" data-rows="2" data-cols="2">2 × 2</button>
-      <button type="button" data-rows="3" data-cols="3">3 × 3</button><button type="button" data-rows="5" data-cols="2">5 × 2</button>
-    </div>
-    <div class="jakal-table-size"><label>줄 (행)<input name="rows" type="number" min="1" max="100" step="1" required></label>
-    <span aria-hidden="true">×</span><label>칸 (열)<input name="cols" type="number" min="1" max="100" step="1" required></label></div>
-    <label class="jakal-nested-width">새 표 너비 · 바깥 칸 기준 (%)<input name="width" type="number" min="10" max="100" step="5" required></label>
-    <p class="jakal-table-summary" role="status" aria-live="polite"></p><p class="jakal-table-error" role="alert" hidden></p>
+    <h2 id="jakal-table-title"></h2>
+    <div class="jakal-table-size"><label>줄 수<input name="rows" type="number" min="1" max="100" step="1" required></label>
+    <label>칸 수<input name="cols" type="number" min="1" max="100" step="1" required></label></div>
+    <label class="jakal-nested-width">새 표 너비<span><input name="width" type="number" min="10" max="100" step="5" required>% (바깥 칸 기준)</span></label>
+    <label class="jakal-table-inline"><input name="inline" type="checkbox"> 글자처럼 취급</label>
+    <p class="jakal-table-error" role="alert" hidden></p>
     <footer><button type="button" data-cancel>취소</button><button type="submit">표 만들기</button></footer>
   </form>`;
-  dialog.querySelector('h2')!.textContent = split ? '칸 나누기' : nested ? '표 안에 새 표 넣기' : '표 만들기';
-  dialog.querySelector('.jakal-table-hint')!.textContent = nested
-    ? '바깥 칸을 나누지 않고, 그 안에 독립된 표를 하나 더 넣습니다.'
-    : split ? '선택한 칸을 아래 줄·칸 수로 나눕니다. 새 표는 만들지 않습니다.'
-    : '줄과 칸을 정하세요. Enter로 만들고 Esc로 닫을 수 있습니다.';
-  dialog.querySelector<HTMLElement>('.jakal-table-presets')!.hidden = nested;
-  dialog.querySelector<HTMLElement>('.jakal-nested-preview')!.hidden = !nested;
+  dialog.querySelector('h2')!.textContent = split ? '칸 나누기' : nested ? '표 안에 표 넣기' : '표 만들기';
   dialog.querySelector<HTMLElement>('.jakal-nested-width')!.hidden = !nested;
+  dialog.querySelector<HTMLElement>('.jakal-table-inline')!.hidden = !body;
   const width = dialog.querySelector<HTMLInputElement>('[name="width"]')!;
   width.value = String(size.width); width.disabled = !nested;
+  const inline = dialog.querySelector<HTMLInputElement>('[name="inline"]')!;
+  inline.checked = size.inline;
   const rows = dialog.querySelector<HTMLInputElement>('[name="rows"]')!;
   const cols = dialog.querySelector<HTMLInputElement>('[name="cols"]')!;
   rows.value = String(size.rows); cols.value = String(size.cols);
-  const summary = dialog.querySelector<HTMLElement>('.jakal-table-summary')!;
+  const error = dialog.querySelector<HTMLElement>('.jakal-table-error')!;
   const submit = dialog.querySelector<HTMLButtonElement>('[type="submit"]')!;
-  submit.textContent = split ? '칸 나누기' : nested ? '표 넣기' : '표 만들기';
+  submit.textContent = split ? '나누기' : nested ? '넣기' : '만들기';
+  const valid = () => validSize(rows.valueAsNumber, cols.valueAsNumber) && (!nested || (width.valueAsNumber >= 10 && width.valueAsNumber <= 100));
   const update = () => {
-    const valid = validSize(rows.valueAsNumber, cols.valueAsNumber) && (!nested || (width.valueAsNumber >= 10 && width.valueAsNumber <= 100));
-    dialog.querySelector<HTMLElement>('.jakal-nested-preview > div')!.style.width = `${width.valueAsNumber || 75}%`;
-    summary.textContent = valid ? `${rows.value}줄 × ${cols.value}칸 · ${rows.valueAsNumber * cols.valueAsNumber}셀` : '1~100줄·칸, 총 2,500셀 이내로 입력하세요.';
-    submit.disabled = !valid;
+    const ok = valid();
+    error.hidden = ok; error.textContent = ok ? '' : nested && validSize(rows.valueAsNumber, cols.valueAsNumber)
+      ? '새 표 너비는 10~100%로 입력하세요.' : '줄·칸은 1~100, 전체 2,500칸 이내로 입력하세요.';
+    submit.disabled = !ok;
   };
   const close = () => { dialog.close(); dialog.remove(); focus(); };
   dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
   dialog.querySelector('[data-cancel]')!.addEventListener('click', close);
   dialog.addEventListener('click', event => { if (event.target === dialog) close(); });
   dialog.addEventListener('input', update);
-  for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-rows]')) {
-    button.addEventListener('click', () => { rows.value = button.dataset.rows!; cols.value = button.dataset.cols!; update(); rows.focus(); rows.select(); });
-  }
   dialog.querySelector('form')!.addEventListener('submit', event => {
     event.preventDefault();
-    if (!validSize(rows.valueAsNumber, cols.valueAsNumber) || (nested && (!Number.isFinite(width.valueAsNumber) || width.valueAsNumber < 10 || width.valueAsNumber > 100))) return;
+    if (!valid()) return;
     try {
       if (nested) apply(rows.valueAsNumber, cols.valueAsNumber, width.valueAsNumber);
+      else if (body) apply(rows.valueAsNumber, cols.valueAsNumber, undefined, inline.checked);
       else apply(rows.valueAsNumber, cols.valueAsNumber);
-      try { localStorage.setItem(storage, JSON.stringify({ rows: rows.valueAsNumber, cols: cols.valueAsNumber, width: width.valueAsNumber })); } catch { /* optional preference */ }
+      try { localStorage.setItem(storage, JSON.stringify({ rows: rows.valueAsNumber, cols: cols.valueAsNumber, width: width.valueAsNumber, inline: inline.checked })); } catch { /* optional preference */ }
       close();
-    } catch (error) {
-      const message = dialog.querySelector<HTMLElement>('.jakal-table-error')!;
-      message.hidden = false; message.textContent = error instanceof Error ? error.message : String(error);
+    } catch (cause) {
+      error.hidden = false; error.textContent = cause instanceof Error ? cause.message : String(cause);
     }
   });
   update(); document.body.appendChild(dialog); dialog.showModal(); rows.focus(); rows.select();
@@ -117,12 +111,12 @@ export function installTableTools(registry: CommandRegistry, getInput: () => Inp
     if (!input) return;
     const position = structuredClone(input.getCursorPosition());
     const generation = services.wasm.documentGeneration;
-    const apply = (rows: number, cols: number, widthPercent?: number) => {
+    const apply = (rows: number, cols: number, widthPercent?: number, treatAsChar = true) => {
       if (generation !== services.wasm.documentGeneration) throw new Error('문서가 바뀌었습니다. 창을 닫고 입력 위치를 다시 선택하세요.');
       input.executeOperation({ kind: 'snapshot', operationType: 'createTable', operation: engine => {
         if (position.parentParaIndex !== undefined) return (engine as TableEngine).createNestedTable(position, rows, cols, { widthPercent });
         const result = engine.createTableEx({ sectionIdx: position.sectionIndex, paraIdx: position.paragraphIndex,
-          charOffset: position.charOffset, rowCount: rows, colCount: cols, treatAsChar: true });
+          charOffset: position.charOffset, rowCount: rows, colCount: cols, treatAsChar });
         if (!result.ok) throw new Error('표를 만들지 못했습니다. 입력 위치를 다시 선택하세요.');
         // Leave a paragraph below a table that ends the section so typing can continue after it.
         (engine as TableEngine).ensureTrailingParagraph?.(position.sectionIndex, result.paraIdx);

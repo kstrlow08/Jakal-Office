@@ -43,9 +43,11 @@ type NativeDocument = {
   insertPicture(section: number, paragraph: number, offset: number, path: string, data: Uint8Array, width: number, height: number,
     naturalWidth: number, naturalHeight: number, extension: string, description: string): string;
   setPictureProperties(section: number, paragraph: number, control: number, props: string): string;
+  insertEquation(section: number, paragraph: number, offset: number, script: string, fontSize: number, color: number): string;
   beginBatch(): string;
   endBatch(): string;
 };
+export type CellEquation = { script: string; fontSize: number; color: number };
 export type CellPicture = {
   bytes: Uint8Array; width: number; height: number; naturalWidth: number; naturalHeight: number;
   extension: string; description: string;
@@ -197,6 +199,30 @@ export function insertCellPicture(doc: NativeDocument, position: TablePosition, 
     const charOffset = offset + 1;
     return {
       sectionIndex: section, paragraphIndex: 0, charOffset, parentParaIndex: parent,
+      controlIndex: path[0].controlIndex, cellIndex: path[0].cellIndex, cellParaIndex: path[0].cellParaIndex, cellPath: path,
+    };
+  });
+  refreshTableLayout(doc, position);
+  return cursor;
+}
+
+/** Equations in table cells: the runtime only inserts into body paragraphs, so
+ * build the equation in a scratch paragraph and move it into the cell. */
+export function insertCellEquation(doc: NativeDocument, position: TablePosition, equation: CellEquation): TablePosition {
+  if (!equation.script.trim()) throw new Error('수식 내용을 입력하세요.');
+  const path = tableCellPath(position);
+  const section = position.sectionIndex, parent = position.parentParaIndex!;
+  const props = JSON.parse(doc.getCellPropertiesByPath(section, parent, JSON.stringify(path), path.at(-1)!.cellIndex));
+  if (props.cellProtect) throw new Error('보호된 셀에는 수식을 넣을 수 없습니다.');
+  const failed = '수식을 넣지 못했습니다. 셀 안을 다시 클릭한 뒤 시도해 주세요.';
+  const cursor = withScratch(doc, section, (appendScratch, copy) => {
+    const scratch = appendScratch();
+    const inserted = checked(doc.insertEquation(section, scratch, 0, equation.script, Math.round(equation.fontSize), equation.color >>> 0), failed);
+    copy(inserted.paraIdx, '', inserted.controlIdx);
+    const pasted = checked(doc.pasteInternalInCellByPath(section, parent, JSON.stringify(path), position.charOffset), failed);
+    if (Number.isSafeInteger(pasted.cellParaIdx)) path[path.length - 1].cellParaIndex = pasted.cellParaIdx;
+    return {
+      sectionIndex: section, paragraphIndex: 0, charOffset: position.charOffset + 1, parentParaIndex: parent,
       controlIndex: path[0].controlIndex, cellIndex: path[0].cellIndex, cellParaIndex: path[0].cellParaIndex, cellPath: path,
     };
   });

@@ -4,9 +4,9 @@ const COUNT = 12;
 
 /** Anchored preview: only click/Enter changes the document. */
 export function showTablePicker(options: Options) {
-  const dialog = document.createElement('dialog'); dialog.className = 'jakal-table-picker'; dialog.setAttribute('aria-label', options.nested ? '표 안에 표 넣기' : '표 삽입');
+  const dialog = document.createElement('dialog'); dialog.className = 'jakal-table-picker'; dialog.setAttribute('aria-label', options.nested ? '표 안에 표 넣기' : '표 만들기');
   const header = document.createElement('div'); header.className = 'jakal-picker-header';
-  const title = document.createElement('span'); title.textContent = options.nested ? '표 안에 표' : '표 삽입';
+  const title = document.createElement('span'); title.textContent = options.nested ? '표 안에 표 넣기' : '표 만들기';
   const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '취소'; header.append(title, cancel);
   const grid = document.createElement('div'); grid.className = 'jakal-table-grid'; grid.setAttribute('role', 'grid');
   grid.setAttribute('aria-label', '표 크기 선택'); grid.setAttribute('aria-rowcount', String(COUNT)); grid.setAttribute('aria-colcount', String(COUNT));
@@ -22,8 +22,7 @@ export function showTablePicker(options: Options) {
   }
   const status = document.createElement('p'); status.className = 'jakal-picker-size'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   const advanced = document.createElement('button'); advanced.type = 'button'; advanced.className = 'jakal-picker-advanced'; advanced.append(ribbonIcon('icon-table'));
-  const text = document.createElement('span'); text.textContent = '표 만들기…'; advanced.append(text);
-  const key = document.createElement('kbd'); key.textContent = '줄·칸 직접 입력'; advanced.append(key);
+  const text = document.createElement('span'); text.textContent = '줄·칸 수 직접 입력…'; advanced.append(text);
   const error = document.createElement('p'); error.className = 'jakal-picker-error'; error.setAttribute('role', 'alert'); error.hidden = true;
   dialog.append(header, grid, status, advanced, error);
   let rows = 0, cols = 0, closed = false;

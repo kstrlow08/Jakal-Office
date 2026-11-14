@@ -42,8 +42,9 @@ export const commandIcons: Record<string, string> = {
   'insert:picture-inline': 'text-cursor', 'insert:picture-floating': 'wrap-text', 'format:object-properties': 'settings-2',
   'insert:hanja':'languages', 'format:toggle-numbering':'list-ordered', 'format:toggle-bullet':'list',
   'table:inline':'text-cursor', 'table:floating':'wrap-text',
+  'jakal:shortcuts':'help', 'jakal:insert-date':'file-clock', 'jakal:exit-table':'corner-left-up', 'jakal:caption':'captions',
 };
-const primaryIcons = new Set(['new-doc','folder-open','save','print','pdf','page-setup','font','table','shape','textbox','symbols','footnote','endnote','sparkles','compare','lock']);
+const primaryIcons = new Set(['help','new-doc','folder-open','save','print','pdf','page-setup','font','table','shape','textbox','symbols','footnote','endnote','sparkles','compare','lock']);
 export function commandIcon(id: string) {
   const name=commandIcons[id];
   return ribbonIcon(officeCommandIcons[id] ?? (primaryIcons.has(name) ? 'icon-'+name : 'icon-mono-'+(name ?? 'file')),16);

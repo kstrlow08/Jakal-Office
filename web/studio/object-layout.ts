@@ -152,7 +152,14 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
     selected = next;
     const signature = JSON.stringify([next?.kind, next?.multiple, next?.type, next?.nested]);
     if (signature !== rendered) { rendered = signature; render(next); }
+    const wasHidden = tabs.hidden;
     tabs.hidden = !context.hasDocument || (!next && !manual);
+    // On narrow screens the menu row scrolls without a visible scrollbar; keep
+    // the newly shown contextual tab in view instead of past the right edge.
+    if (wasHidden && !tabs.hidden && menu && menu.scrollWidth > menu.clientWidth) {
+      const overflow = tabs.getBoundingClientRect().right - menu.getBoundingClientRect().right;
+      if (overflow > 0) menu.scrollLeft += overflow + 8;
+    }
     region.hidden = tabs.hidden || !expanded;
     header.classList.toggle('jakal-layout-active', !region.hidden);
     panel.hidden = !expanded;

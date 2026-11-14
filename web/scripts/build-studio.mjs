@@ -10,6 +10,7 @@ import { restoreHostFileCommands } from '../studio/file-command-policy.mjs';
 import { useLineCaretDuringComposition } from '../studio/line-caret-policy.mjs';
 import { repairHeaderInput, repairHeaderText, repairHeaderCommand } from '../studio/compatibility-policy.mjs';
 import { applyPerformancePolicy } from './performance-policy.mjs';
+import { addHancomShortcutMap, addHancomChords, addCellBlockLetters } from '../studio/hancom-shortcut-policy.mjs';
 
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = resolve(web, '..');
@@ -51,6 +52,8 @@ await build({
     '@jakal/nested-table': resolve(web, 'studio/nested-table.ts'),
     '@jakal/table-drag': resolve(web, 'studio/table-drag.ts'),
     '@jakal/image-tools': resolve(web, 'studio/image-tools.ts'),
+    '@jakal/equation-tools': resolve(web, 'studio/equation-tools.ts'),
+    '@jakal/hancom-keys': resolve(web, 'studio/hancom-keys.ts'),
     '@jakal/font-catalog': resolve(web, 'studio/font-catalog.ts'),
     '@jakal/export-compat': resolve(web, 'studio/export-compat.ts'),
     '@jakal/ai-target': resolve(web, 'studio/ai-target.ts'),
@@ -76,6 +79,10 @@ await build({
       const originalCode=code;
       code=applyPerformancePolicy(code,id);
       const path = id.replaceAll('\\', '/');
+      // 한글 shortcuts: extra default keys, Ctrl+M/Ctrl+K chords and F5 cell-block letters.
+      if (path.endsWith('/command/shortcut-map.ts')) return addHancomShortcutMap(code);
+      if (path.endsWith('/engine/input-handler-keyboard.ts')) return addHancomChords(code);
+      if (path.endsWith('/command/contextual-shortcut.ts')) return addCellBlockLetters(code);
       if (path.endsWith('/engine/input-handler.ts')) {
         code = repairHeaderInput(code);
         code = useLineCaretDuringComposition(code);
@@ -123,7 +130,7 @@ await build({
       if (id.replaceAll('\\', '/').endsWith('/core/mutation-method-registry.ts')) {
         const methods = "'createTable', 'createTableEx',";
         if (!code.includes(methods)) throw new Error('Pinned table mutation registry changed');
-        return code.replace(methods, "'createTable', 'createTableEx', 'createNestedTable', 'editNestedTable', 'insertCellPicture', 'ensureTrailingParagraph',");
+        return code.replace(methods, "'createTable', 'createTableEx', 'createNestedTable', 'editNestedTable', 'insertCellPicture', 'insertCellEquation', 'ensureTrailingParagraph',");
       }
       if (id.replaceAll('\\', '/').endsWith('/ui/chrome-mode.ts')) return restoreHostFileCommands(code.replaceAll('\r\n', '\n'));
       if (id.replaceAll('\\', '/').endsWith('/command/commands/format.ts')) {
@@ -182,13 +189,17 @@ await build({
         code=code.replace(initTarget,'const wasmModule = await initializeCompressedWasm(init,rhwpWasmUrl) as { memory?: WebAssembly.Memory };');
         code="import { initializeCompressedWasm } from '@jakal/compressed-wasm';\nimport rhwpWasmUrl from '@wasm/rhwp_bg.wasm?url';\n"+code;
         if (!code.includes(tableMethod)) throw new Error('Pinned table creation bridge changed');
-        code = `import { insertNestedTable, editNestedTable, insertCellPicture, ensureTrailingParagraph, type TablePosition, type TableOptions, type StructureOptions, type CellPicture } from '@jakal/nested-table';\n` + code.replace(tableMethod, `  editNestedTable(position: TablePosition, operation: string, options?: StructureOptions): TablePosition {
+        code = `import { insertNestedTable, editNestedTable, insertCellPicture, insertCellEquation, ensureTrailingParagraph, type TablePosition, type TableOptions, type StructureOptions, type CellPicture, type CellEquation } from '@jakal/nested-table';\n` + code.replace(tableMethod, `  editNestedTable(position: TablePosition, operation: string, options?: StructureOptions): TablePosition {
           if (!this.doc) throw new Error('문서가 로드되지 않았습니다');
           return editNestedTable(this.doc, position, operation, options);
         }
         insertCellPicture(position: TablePosition, picture: CellPicture): TablePosition {
           if (!this.doc) throw new Error('문서가 로드되지 않았습니다');
           return insertCellPicture(this.doc, position, picture);
+        }
+        insertCellEquation(position: TablePosition, equation: CellEquation): TablePosition {
+          if (!this.doc) throw new Error('문서가 로드되지 않았습니다');
+          return insertCellEquation(this.doc, position, equation);
         }
         ensureTrailingParagraph(section: number, paragraph: number): boolean {
           if (!this.doc) throw new Error('문서가 로드되지 않았습니다');

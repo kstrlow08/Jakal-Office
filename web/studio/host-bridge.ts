@@ -6,6 +6,8 @@ import { installHostFileActions } from '@jakal/file-actions';
 import { installTableTools, installTableExit } from '@jakal/table-tools';
 import { installObjectLayout } from '@jakal/object-layout';
 import { installImageTools, installImageDrop, installImagePaste, installMenuPaste } from '@jakal/image-tools';
+import { installEquationTools } from '@jakal/equation-tools';
+import { installHancomKeys } from '@jakal/hancom-keys';
 import { installOfficeFonts } from '@jakal/font-catalog';
 import { readAiTarget, listAiTargets, readAiLocation } from '@jakal/ai-target';
 import { installRibbon } from '@jakal/ribbon';
@@ -26,6 +28,10 @@ if (jakalHost) installTableTools(registry, () => inputHandler, message => showTo
 if (jakalHost) installTableExit(() => inputHandler, () => wasm);
 if (jakalHost) installAutomaticNumbering(() => inputHandler);
 installImageTools(registry);
+// LaTeX-first equations; the document keeps Hancom script. Also inserts into table cells.
+installEquationTools(registry, () => inputHandler as any, message => showToast({ message, durationMs: 6500 }));
+// 한글 shortcuts that depend on the caret (table rows, Shift+Esc, object order) and their commands.
+installHancomKeys(registry, () => inputHandler as any, id => dispatcher.dispatch(id), id => (dispatcher as any).isEnabled?.(id) ?? true, message => showToast({ message, durationMs: 6500 }));
 // Before the document drop listener below: image drops use the inline, cell-aware path.
 if (jakalHost) installImageDrop(() => inputHandler, () => wasm);
 if (jakalHost) installImagePaste(() => inputHandler, () => wasm);
@@ -132,6 +138,9 @@ document.addEventListener('keydown', (event) => {
   }
   if (jakalHost && (event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey && event.code === 'KeyK') {
     event.preventDefault(); event.stopImmediatePropagation(); jakalPost('workbench'); return;
+  }
+  if (jakalHost && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.code === 'KeyS' && !event.isComposing) {
+    event.preventDefault(); event.stopImmediatePropagation(); jakalPost('save'); return; // 한글 Alt+S
   }
   if (jakalHost && (event.ctrlKey || event.metaKey) && !event.altKey && event.code === 'KeyS') {
     event.preventDefault(); event.stopImmediatePropagation();

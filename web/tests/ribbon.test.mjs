@@ -100,7 +100,7 @@ test('every ribbon entry names a command the editor or Office registers', () => 
   for (const id of ids) assert.match(id, /^(file|edit|view|insert|format|page|table|tool|jakal):[a-z0-9-]+$/);
   assert.equal(Object.keys(ribbonTabs).join(','), menus.join(','));
   const upstream = '../build/rhwp-studio-source/rhwp-studio/src/command/commands';
-  const source = readdirSync(upstream).filter(name => name.endsWith('.ts')).map(name => readFileSync(`${upstream}/${name}`, 'utf8')).join('\n') + '\n' + ['host-bridge.ts', 'table-tools.ts', 'object-layout.ts', 'font-catalog.ts', 'image-tools.ts'].map(name => readFileSync('studio/' + name, 'utf8')).join('\n');
+  const source = readdirSync(upstream).filter(name => name.endsWith('.ts')).map(name => readFileSync(`${upstream}/${name}`, 'utf8')).join('\n') + '\n' + ['host-bridge.ts', 'table-tools.ts', 'object-layout.ts', 'font-catalog.ts', 'image-tools.ts', 'equation-tools.ts', 'hancom-keys.ts'].map(name => readFileSync('studio/' + name, 'utf8')).join('\n');
   for (const id of ids) {
     assert(source.includes(`'${id}'`) || id === 'view:zoom-100', `Unregistered ribbon command ${id}`);
     assert(!source.includes(`stub('${id}'`), `Unimplemented command ${id}`);
