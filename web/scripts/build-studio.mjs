@@ -123,7 +123,7 @@ await build({
       if (id.replaceAll('\\', '/').endsWith('/core/mutation-method-registry.ts')) {
         const methods = "'createTable', 'createTableEx',";
         if (!code.includes(methods)) throw new Error('Pinned table mutation registry changed');
-        return code.replace(methods, "'createTable', 'createTableEx', 'createNestedTable', 'editNestedTable',");
+        return code.replace(methods, "'createTable', 'createTableEx', 'createNestedTable', 'editNestedTable', 'insertCellPicture', 'ensureTrailingParagraph',");
       }
       if (id.replaceAll('\\', '/').endsWith('/ui/chrome-mode.ts')) return restoreHostFileCommands(code.replaceAll('\r\n', '\n'));
       if (id.replaceAll('\\', '/').endsWith('/command/commands/format.ts')) {
@@ -182,9 +182,17 @@ await build({
         code=code.replace(initTarget,'const wasmModule = await initializeCompressedWasm(init,rhwpWasmUrl) as { memory?: WebAssembly.Memory };');
         code="import { initializeCompressedWasm } from '@jakal/compressed-wasm';\nimport rhwpWasmUrl from '@wasm/rhwp_bg.wasm?url';\n"+code;
         if (!code.includes(tableMethod)) throw new Error('Pinned table creation bridge changed');
-        code = `import { insertNestedTable, editNestedTable, type TablePosition, type TableOptions, type StructureOptions } from '@jakal/nested-table';\n` + code.replace(tableMethod, `  editNestedTable(position: TablePosition, operation: string, options?: StructureOptions): TablePosition {
+        code = `import { insertNestedTable, editNestedTable, insertCellPicture, ensureTrailingParagraph, type TablePosition, type TableOptions, type StructureOptions, type CellPicture } from '@jakal/nested-table';\n` + code.replace(tableMethod, `  editNestedTable(position: TablePosition, operation: string, options?: StructureOptions): TablePosition {
           if (!this.doc) throw new Error('문서가 로드되지 않았습니다');
           return editNestedTable(this.doc, position, operation, options);
+        }
+        insertCellPicture(position: TablePosition, picture: CellPicture): TablePosition {
+          if (!this.doc) throw new Error('문서가 로드되지 않았습니다');
+          return insertCellPicture(this.doc, position, picture);
+        }
+        ensureTrailingParagraph(section: number, paragraph: number): boolean {
+          if (!this.doc) throw new Error('문서가 로드되지 않았습니다');
+          return ensureTrailingParagraph(this.doc, section, paragraph);
         }
         createNestedTable(position: TablePosition, rows: number, cols: number, options?: TableOptions): TablePosition {
           if (!this.doc) throw new Error('문서가 로드되지 않았습니다');

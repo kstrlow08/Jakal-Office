@@ -1,12 +1,14 @@
 import type { CommandRegistry } from '@/command/registry';
 import type { CommandServices, EditorContext } from '@/command/types';
 import { chartTargetFromSelection, matchChartRef } from '@/core/chart-data-target';
+import { getObjectProps } from '@/engine/object-props';
 import { commandIcon } from './command-icons';
 
 type Input = NonNullable<ReturnType<CommandServices['getInputHandler']>>;
 type Kind = 'table' | 'image' | 'chart' | 'object';
 type Selection = { kind: Kind; key: string; multiple?: boolean; type?: string; nested?: boolean };
-type Action = [id: string, label: string];
+/** [command, accessible name, optional shorter visible caption] */
+type Action = [id: string, label: string, caption?: string];
 type Group = { label: string; actions: Action[] };
 const titles: Record<Kind, string> = { table: '표 레이아웃', image: '그림 레이아웃', chart: '차트 레이아웃', object: '개체 레이아웃' };
 
@@ -36,20 +38,45 @@ export function resolveLayoutSelection(context: EditorContext, input: Input | nu
   return null;
 }
 
+const placementCommands: Record<string, boolean> = { 'table:inline': true, 'table:floating': false, 'insert:picture-inline': true, 'insert:picture-floating': false };
+
+/** Whether the selected table/picture is placed like a character (true), floats
+ * with the text (false) or cannot be read (null). Used for the pressed state. */
+export function readPlacement(selection: Selection | null, input: Input | null, wasm: CommandServices['wasm']): boolean | null {
+  if (!selection || !input) return null;
+  try {
+    if (selection.kind === 'table') {
+      if (selection.nested) return null;
+      const ref = input.getSelectedTableRef?.(), position = input.getCursorPosition();
+      const sec = ref?.sec ?? position.sectionIndex, para = ref?.ppi ?? position.parentParaIndex, control = ref?.ci ?? position.controlIndex;
+      if (para === undefined || control === undefined || typeof (wasm as any).getTableProperties !== 'function') return null;
+      const value = (wasm as any).getTableProperties(sec, para, control)?.treatAsChar;
+      return typeof value === 'boolean' ? value : null;
+    }
+    if (selection.type !== 'image' || selection.multiple) return null;
+    const ref = input.getSelectedPictureRef() as any;
+    if (!ref) return null;
+    const cellPath = ref.cellPath ?? (ref.cellIdx !== undefined && ref.cellParaIdx !== undefined && ref.outerTableControlIdx !== undefined
+      ? [{ controlIdx: ref.outerTableControlIdx, cellIdx: ref.cellIdx, cellParaIdx: ref.cellParaIdx }] : undefined);
+    const value = getObjectProps(wasm, { ...ref, cellPath })?.treatAsChar;
+    return typeof value === 'boolean' ? value : null;
+  } catch { return null; }
+}
+
 function groupsFor(selection: Selection): Group[] {
   if (selection.kind === 'table') return [
     { label: '본문 배치', actions: [['table:inline','글자처럼 취급'],['table:floating','본문과 어울리기']] },
     { label: '속성', actions: [['table:cell-props', '표·셀 속성'], ['table:border-each', '테두리·배경']] },
-    { label: '칸 선택·편집', actions: [['table:select-cells', '셀 선택 (F5)'], ['table:cell-split', '칸 나누기'], ['table:cell-merge', '칸 합치기']] },
+    { label: '칸 선택·편집', actions: [['table:select-cells', '셀 선택 (F5)', '셀 선택'], ['table:cell-split', '칸 나누기'], ['table:cell-merge', '칸 합치기']] },
     { label: '줄·칸 추가', actions: [['table:insert-row-above', '위에 줄'], ['table:insert-row-below', '아래에 줄'], ['table:insert-col-left', '왼쪽에 칸'], ['table:insert-col-right', '오른쪽에 칸']] },
-    { label: '표 안에 표', actions: [['table:create-nested', '표 안에 새 표 넣기'], ['table:parent-cell', '상위 칸으로']] },
+    { label: '표 안에 표', actions: [['table:create-nested', '표 안에 새 표 넣기', '표 넣기'], ['table:parent-cell', '상위 칸으로']] },
   ];
   if (selection.multiple) return [{ label: '개체 묶기', actions: [['insert:group-shapes', '개체 묶기']] }];
-  const groups: Group[] = [{ label: '크기·위치·배치', actions: [['insert:picture-props', selection.kind === 'chart' ? '차트 크기·배치' : '크기·배치·여백']] }];
+  const groups: Group[] = [{ label: '크기·위치·배치', actions: [['insert:picture-props', selection.kind === 'chart' ? '차트 크기·배치' : '크기·배치·여백', '속성']] }];
   if (selection.type === 'image') groups.unshift({label:'본문 배치',actions:[['insert:picture-inline','글자처럼 취급'],['insert:picture-floating','본문과 어울리기']]});
   if (selection.kind === 'chart') groups.push({ label: '차트', actions: [['insert:chart-data-edit', '차트 데이터 편집']] });
   if (selection.type === 'image' || selection.type === 'shape' || selection.type === 'line') {
-    groups.push({ label: '회전·대칭', actions: [['insert:rotate-ccw', '왼쪽 90°'], ['insert:rotate-cw', '오른쪽 90°'], ['insert:flip-horz', '좌우 뒤집기'], ['insert:flip-vert', '상하 뒤집기']] });
+    groups.push({ label: '회전·대칭', actions: [['insert:rotate-ccw', '왼쪽으로 90° 회전', '왼쪽 90°'], ['insert:rotate-cw', '오른쪽으로 90° 회전', '오른쪽 90°'], ['insert:flip-horz', '좌우 뒤집기', '좌우 대칭'], ['insert:flip-vert', '상하 뒤집기', '상하 대칭']] });
   }
   if (selection.type === 'shape') groups.push({ label: '순서', actions: [['insert:arrange-front', '맨 앞으로'], ['insert:arrange-back', '맨 뒤로']] });
   if (selection.type === 'equation') groups.push({ label: '수식', actions: [['insert:equation-edit', '수식 편집']] });
@@ -76,18 +103,25 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
   // second tab row below it. MenuBar dispatches this tab and closes its menus.
   if (menu) menu.after(region); else header.append(region);
   let selected: Selection | null = null, expanded = true, manual = false, rendered = '';
-  let selectionCache = '', cachedSelection: Selection | null = null;
+  let selectionCache = '', cachedSelection: Selection | null = null, placement: boolean | null = null;
   const buttons = new Map<string, HTMLButtonElement>();
   function render(selection: Selection | null) {
     panel.replaceChildren(); buttons.clear();
     if (selection) for (const group of groupsFor(selection)) {
       const area = document.createElement('div'); area.className = 'jakal-layout-group'; area.setAttribute('role', 'group'); area.setAttribute('aria-label', group.label);
       const actions = document.createElement('div');
-      for (const [id, label] of group.actions) {
+      for (const [id, label, caption] of group.actions) {
         if (!registry.get(id)) continue;
-        const button = document.createElement('button'); button.type = 'button'; button.append(commandIcon(id)); button.dataset.command = id;
+        const button = document.createElement('button'); button.type = 'button'; button.dataset.command = id;
+        const text = document.createElement('span'); text.className = 'jakal-layout-label'; text.textContent = caption ?? label;
+        button.append(commandIcon(id), text);
         button.setAttribute('aria-label', label); button.title = label;
-        button.addEventListener('click', () => { dispatcher.dispatch(id, { anchorEl: button }); update(); });
+        if (id in placementCommands) button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+          dispatcher.dispatch(id, { anchorEl: button });
+          if (id in placementCommands) selectionCache = ''; // Re-read the placement now.
+          update();
+        });
         actions.append(button); buttons.set(id, button);
       }
       if (!actions.childElementCount) continue;
@@ -106,7 +140,10 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
     // Chart enumeration is needed only when selection or document content changes.
     const cache = JSON.stringify([context.hasDocument, context.inPictureObjectSelection, context.inTable, context.inCellSelectionMode,
       context.inTableObjectSelection, input?.getSelectedPictureRef?.(), input?.getSelectedPictureRefs?.(), input?.getSelectedTableRef?.(), input?.getCursorPosition?.(), wasm.documentGeneration]);
-    if (cache !== selectionCache) { cachedSelection = resolveLayoutSelection(context, input, wasm); selectionCache = cache; }
+    if (cache !== selectionCache) {
+      cachedSelection = resolveLayoutSelection(context, input, wasm); selectionCache = cache;
+      placement = readPlacement(cachedSelection, input, wasm);
+    }
     const next = cachedSelection;
     if (next?.key !== selected?.key || next?.kind !== selected?.kind) {
       expanded = true;
@@ -131,6 +168,7 @@ export function installObjectLayout(registry: CommandRegistry, dispatcher: { dis
       const rootOnly = !!next?.nested && ['table:cell-props', 'table:border-each'].includes(id);
       button.disabled = rootOnly || !context.isEditable || context.isFormMode || !command || !!command.canExecute && !command.canExecute(context);
       button.title = rootOnly ? '이 속성 창은 바깥 표에서 사용할 수 있습니다.' : button.getAttribute('aria-label') || '';
+      if (id in placementCommands) button.setAttribute('aria-pressed', String(placement !== null && placementCommands[id] === placement));
     }
   }
   const open = () => { manual = true; expanded = true; update(); region.scrollIntoView?.({ block: 'nearest' }); };

@@ -20,7 +20,8 @@ export class EditLimits{
       if(entry.minute!==minute){entry.minute=minute;entry.count=0;}
       const daily=bucket.total>=LIMITS.globalDaily||entry.daily>=LIMITS.userDaily;
       if(daily)return{allowed:false,retryAfter:Math.ceil(((day+1)*86400000-now)/1000),code:'DAILY_LIMIT'};
-      if(entry.count>=LIMITS.perMinute||Object.keys(bucket.active).length>=LIMITS.concurrent||Object.values(bucket.active).some(item=>item.user===user))return{allowed:false,retryAfter:60,code:'RATE_LIMIT'};
+      if(entry.count>=LIMITS.perMinute)return{allowed:false,retryAfter:Math.ceil(((minute+1)*60000-now)/1000),code:'RATE_LIMIT'};
+      if(Object.keys(bucket.active).length>=LIMITS.concurrent||Object.values(bucket.active).some(item=>item.user===user))return{allowed:false,retryAfter:5,code:'RATE_LIMIT'};
       entry.daily++;entry.count++;bucket.users[user]=entry;bucket.total++;
       bucket.active[lease]={user,until:now+LIMITS.leaseMs};
       await storage.put('quota',bucket);return{allowed:true};

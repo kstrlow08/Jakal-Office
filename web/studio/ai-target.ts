@@ -21,3 +21,19 @@ export function listAiTargets(wasm: any) {
   }
   return result;
 }
+
+/** Native selection, including the editor's separate note/header caret axes. */
+export function readAiLocation(input: any) {
+  const cursor=input?.cursor;
+  if(!cursor)throw new Error('문서를 먼저 열어 주세요.');
+  if(input.isComposing)throw new Error('글자 입력을 마친 뒤 다시 읽어 주세요.');
+  if(cursor.isInHeaderFooter())return {kind:'header',section:cursor.hfSectionIdx,isHeader:cursor.headerFooterMode==='header',applyTo:cursor.hfApplyTo,
+    paragraph:cursor.hfParaIdx,offset:cursor.hfCharOffset,selection:cursor.getHeaderFooterSelectionOrdered()};
+  const count=(section:number,paragraph:number)=>input.wasm.getControlTextPositions(section,paragraph).length;
+  if(cursor.isInFootnote())return {kind:'note',section:cursor.fnSectionIdx,paragraph:cursor.fnParaIdx,control:cursor.fnControlIdx,controlCount:count(cursor.fnSectionIdx,cursor.fnParaIdx),
+    inner:cursor.fnInnerParaIdx,offset:cursor.fnCharOffset,selection:cursor.getFootnoteSelectionOrdered()};
+  const cells=cursor.getSelectedCellRange(),selection=cursor.getSelectionOrdered(),context=cursor.getCellTableContext();
+  const position=(p:any)=>({...p,controlCount:count(p.sectionIndex,p.parentParaIndex??p.paragraphIndex)});
+  return {kind:'body',position:position(cursor.getPosition()),selection:selection?{start:position(selection.start),end:position(selection.end)}:null,
+    cells:cells?{...cells,context:{...context,controlCount:count(context.sec,context.ppi)},excluded:[...cursor.getExcludedCells()]}:null};
+}

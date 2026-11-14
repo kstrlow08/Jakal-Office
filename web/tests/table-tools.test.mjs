@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { JSDOM } from 'jsdom';
-import { showTableDialog, installTableTools } from '../studio/table-tools.ts';
+import { showTableDialog, installTableTools, tableErrorMessage, installTableExit } from '../studio/table-tools.ts';
 
 function fixture(t) {
   const dom = new JSDOM('', { url: 'https://editor.test' });
@@ -118,4 +118,48 @@ test('new body tables explicitly use inline document flow',t=>{
   installTableTools({get:id=>commands.get(id),register:command=>commands.set(command.id,command)},()=>input);
   commands.get('table:create').execute({getInputHandler:()=>input,wasm:engine});document.querySelector('.jakal-table-grid [data-rows="2"][data-cols="3"]').click();
   assert.equal(created.treatAsChar,true);assert.equal(created.rowCount,2);assert.equal(created.colCount,3);
+});
+
+test('failed nested-table edits are reported instead of failing silently', () => {
+  const commands = new Map([['table:create', { id: 'table:create' }], ['table:insert-row-below', { id: 'table:insert-row-below', execute: () => assert.fail('nested rows use the nested path') }]]);
+  const reported = [];
+  const position = { sectionIndex: 0, paragraphIndex: 0, charOffset: 0, parentParaIndex: 1, controlIndex: 0, cellIndex: 0, cellParaIndex: 1,
+    cellPath: [{ controlIndex: 0, cellIndex: 0, cellParaIndex: 1 }, { controlIndex: 0, cellIndex: 0, cellParaIndex: 0 }] };
+  let focused = 0;
+  const input = { getCursorPosition: () => position, focus() { focused++; }, executeOperation: () => { throw new Error('렌더링 오류: 경로[0]: controls[0] 범위 초과'); } };
+  installTableTools({ get: id => commands.get(id), register: command => commands.set(command.id, command) }, () => input, message => reported.push(message));
+  commands.get('table:insert-row-below').execute({ getInputHandler: () => input });
+  assert.deepEqual(reported, ['표를 편집하지 못했습니다. 표의 칸을 다시 클릭한 뒤 시도해 주세요.']);
+  assert.equal(focused, 1);
+  assert.equal(tableErrorMessage(new Error('보호된 셀에는 표를 넣을 수 없습니다.')), '보호된 셀에는 표를 넣을 수 없습니다.');
+  // Without a reporter the error still reaches the dispatcher, which logs it.
+  const silent = new Map([['table:create', { id: 'table:create' }], ['table:insert-row-below', { id: 'table:insert-row-below' }]]);
+  installTableTools({ get: id => silent.get(id), register: command => silent.set(command.id, command) }, () => input);
+  assert.throws(() => silent.get('table:insert-row-below').execute({ getInputHandler: () => input }), /범위 초과/);
+});
+test('ArrowDown in the last row of a body table moves to the paragraph after it', t => {
+  const listeners = [], previous = globalThis.document;
+  globalThis.document = { addEventListener: (type, run) => listeners.push({ type, run }) };
+  t.after(() => { if (previous) globalThis.document = previous; else delete globalThis.document; });
+  const textarea = {}, moves = [], queue = [];
+  const cellAt = index => ({ sectionIndex: 0, paragraphIndex: 0, charOffset: 0, parentParaIndex: 1, controlIndex: 0, cellIndex: index, cellParaIndex: 0,
+    cellPath: [{ controlIndex: 0, cellIndex: index, cellParaIndex: 0 }] });
+  let position = cellAt(3);
+  const input = { textarea, getCursorPosition: () => position, moveCursorTo: next => { moves.push(next); position = next; },
+    cursor: { isInHeaderFooter: () => false, isInFootnote: () => false } };
+  const bridge = { getCellInfo: (_s, _p, _c, index) => ({ row: index >= 2 ? 1 : 0, col: index % 2, rowSpan: 1 }),
+    getTableDimensions: () => ({ rowCount: 2 }), getParagraphCount: () => 3 };
+  installTableExit(() => input, () => bridge, run => queue.push(run));
+  const key = (name, extra = {}) => listeners[0].run({ key: name, target: textarea, shiftKey: false, ctrlKey: false, altKey: false, metaKey: false, isComposing: false, ...extra });
+  key('ArrowDown'); queue.shift()();
+  assert.deepEqual(moves, [{ sectionIndex: 0, paragraphIndex: 2, charOffset: 0 }]);
+  moves.length = 0; position = cellAt(1); key('ArrowDown'); queue.shift()();
+  assert.deepEqual(moves, [], 'not the last row');
+  position = cellAt(3); key('ArrowDown'); position = cellAt(2); queue.shift()();
+  assert.deepEqual(moves, [], 'the engine already moved the caret');
+  bridge.getParagraphCount = () => 2; position = cellAt(3); key('ArrowDown'); queue.shift()();
+  assert.deepEqual(moves, [], 'no paragraph follows the table');
+  key('ArrowDown', { target: {} }); key('ArrowDown', { shiftKey: true });
+  position = { ...cellAt(3), cellPath: [{}, {}] }; key('ArrowDown');
+  assert.equal(queue.length, 0, 'other inputs, selections and nested tables are left alone');
 });

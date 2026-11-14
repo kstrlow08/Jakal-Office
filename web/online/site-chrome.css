@@ -28,3 +28,42 @@
 
 .editing .editor-actions .jakal-action-with-icon{display:inline-flex;align-items:center;justify-content:center;gap:5px}
 .jakal-shell-icon{display:block;flex:0 0 auto;width:16px;height:16px;fill:currentColor;stroke:none}
+
+/* Home: quick-start cards, typed document rows and a clearer empty state. */
+.home-view{max-width:1040px;padding:36px 36px 0}
+.intro{display:flex;flex-direction:column;gap:18px;padding-bottom:26px}
+.intro-head h1{font-size:24px;letter-spacing:-.6px}
+.intro .intro-sub{margin-top:4px;font-size:13px;line-height:1.6;color:var(--muted)}
+.quick-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0}
+.quick-card{display:flex;align-items:center;gap:14px;min-width:0;padding:14px 16px;border:1px solid #d8e0ea;border-radius:8px;background:#fff;text-align:left;color:var(--ink);transition:border-color .12s ease,box-shadow .12s ease,background-color .12s ease}
+button.quick-card:hover{border-color:#9db7d6;background:#fafcff;box-shadow:0 2px 10px #21354d14}
+button.quick-card:not(:disabled):active{transform:none;background:#f0f5fb}
+.quick-card.primary-card{border-color:#356fae;background:#356fae;color:#fff}
+button.quick-card.primary-card:hover{background:#2f64a0;border-color:#2f64a0;box-shadow:0 3px 12px #21354d29}
+button.quick-card.primary-card:not(:disabled):active{background:#234f80}
+.quick-icon{flex:0 0 40px;width:40px;height:40px;display:grid;place-items:center;border-radius:8px;background:#eef3f9;color:#356fae}
+.primary-card .quick-icon{background:#ffffff26;color:#fff}
+.quick-icon svg{width:22px;height:22px}
+.quick-text{display:flex;flex-direction:column;min-width:0}
+.quick-text strong{font-size:14px;font-weight:700;letter-spacing:-.3px;line-height:1.4}
+.quick-text small{font-size:12px;line-height:1.5;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.primary-card .quick-text small{color:#dbe7f5}
+.drop-card{border-style:dashed;background:#f9fbfd;color:#4b5868;cursor:default}
+.drop-card .quick-icon{background:#f0f3f7;color:#6a7a8c}
+.section-heading{margin-bottom:8px}
+.document-card{border-radius:6px;border-bottom-color:#e8edf3}
+.document-card:hover{background:#f6f9fd}
+.document-card-open{grid-template-columns:30px minmax(0,1fr) 64px 200px;padding:11px 10px}
+.document-card-open::before{content:'';width:26px;height:30px;border-radius:3px;background:#e9f0f8 no-repeat center/16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233c6fa8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 3v5h5M9 13h6M9 17h4'/%3E%3C/svg%3E");box-shadow:inset 0 0 0 1px #cfdcec}
+.document-card-open[data-format=hwp]::before{background-color:#eef5f0;box-shadow:inset 0 0 0 1px #cfe2d4;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f7a4f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 3v5h5M9 13h6M9 17h4'/%3E%3C/svg%3E")}
+.doc-name{font-weight:500;color:#25303d}
+.doc-format{justify-self:start;padding:1px 7px;border-radius:999px;background:#eef3f9;color:#3c628d;font-size:11px;font-weight:500;letter-spacing:.2px}
+.document-card-open[data-format=hwp] .doc-format{background:#eef6f0;color:#2f6b47}
+.doc-meta{font-size:12px;text-align:right}
+.card-menu{opacity:.75}
+.document-card:hover .card-menu,.card-menu:focus-visible{opacity:1}
+.empty-state{margin-top:4px;padding:48px 12px 40px;border:1px dashed #d3dce7;border-radius:8px;background:#fbfcfe}
+.empty-state::before{content:'';display:block;width:44px;height:44px;margin:0 auto 12px;border-radius:10px;background:#eef3f9 no-repeat center/24px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23608bbb' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E")}
+@media(max-width:900px){.quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.drop-card{display:none}}
+@media(max-width:700px){.home-view{padding:24px 16px 0}.quick-actions{grid-template-columns:1fr}.quick-card{padding:12px 14px}.document-card-open{grid-template-columns:minmax(0,1fr) auto}.document-card-open::before{display:none}.doc-meta{text-align:left}}
+@media(prefers-reduced-motion:reduce){.quick-card{transition:none}}

@@ -123,3 +123,26 @@ test('multiple images offer group tools instead of editing an arbitrary first im
   assert.match(f.panel.textContent, /여러 개체/);
   assert.equal(resolveLayoutSelection({ hasDocument: false }, f.input, f.wasm), null);
 });
+
+test('layout buttons show visible captions and mark the current table and picture placement', t => {
+  const f = fixture(t);
+  for (const id of ['table:inline', 'table:floating']) f.commands.set(id, { canExecute: ctx => ctx.inTable });
+  for (const id of ['insert:picture-inline', 'insert:picture-floating']) f.commands.set(id, { canExecute: ctx => ctx.inPictureObjectSelection });
+  let tableInline = false, pictureInline = true;
+  f.wasm.getTableProperties = () => ({ treatAsChar: tableInline });
+  f.wasm.getPictureProperties = () => ({ treatAsChar: pictureInline });
+  f.context.inTable = true; f.emit('cursor-cell-changed');
+  assert.equal(f.button('table:cell-split').querySelector('.jakal-layout-label').textContent, '칸 나누기');
+  assert.equal(f.button('table:create-nested').querySelector('.jakal-layout-label').textContent, '표 넣기');
+  assert.equal(f.button('table:create-nested').getAttribute('aria-label'), '표 안에 새 표 넣기');
+  assert.equal(f.button('table:floating').getAttribute('aria-pressed'), 'true');
+  assert.equal(f.button('table:inline').getAttribute('aria-pressed'), 'false');
+  tableInline = true; f.emit('document-mutated');
+  assert.equal(f.button('table:inline').getAttribute('aria-pressed'), 'true');
+  f.choose('image');
+  assert.equal(f.button('insert:picture-inline').getAttribute('aria-pressed'), 'true');
+  assert.equal(f.button('insert:picture-floating').getAttribute('aria-pressed'), 'false');
+  // Unknown placement (e.g. a nested table or an engine error) presses neither.
+  f.wasm.getPictureProperties = () => { throw new Error('missing'); }; f.emit('document-mutated');
+  assert.equal(f.button('insert:picture-inline').getAttribute('aria-pressed'), 'false');
+});

@@ -3,11 +3,11 @@
 import { installInputProfile } from '@jakal/input-profile';
 import { insertBlock } from '@jakal/block-insertion';
 import { installHostFileActions } from '@jakal/file-actions';
-import { installTableTools } from '@jakal/table-tools';
+import { installTableTools, installTableExit } from '@jakal/table-tools';
 import { installObjectLayout } from '@jakal/object-layout';
-import { installImageTools } from '@jakal/image-tools';
+import { installImageTools, installImageDrop, installImagePaste, installMenuPaste } from '@jakal/image-tools';
 import { installOfficeFonts } from '@jakal/font-catalog';
-import { readAiTarget, listAiTargets } from '@jakal/ai-target';
+import { readAiTarget, listAiTargets, readAiLocation } from '@jakal/ai-target';
 import { installRibbon } from '@jakal/ribbon';
 import { installSurfaceIcons } from '@jakal/surface-icons';
 import { installResponsiveFit } from '@jakal/responsive-fit';
@@ -20,9 +20,16 @@ void initPromise.then(() => installInputProfile({ wasm, input: inputHandler, vie
 })));
 const jakalHost = window.parent !== window;
 if (jakalHost) installHostFileActions(registry, action => jakalPost('file-action', { action }));
-if (jakalHost) installTableTools(registry, () => inputHandler);
+// main.ts already imports showToast; failed table edits must not fail silently.
+if (jakalHost) installTableTools(registry, () => inputHandler, message => showToast({ message, durationMs: 6500 }));
+// Registered before the host keydown listener below; leaves a table's last row with ArrowDown.
+if (jakalHost) installTableExit(() => inputHandler, () => wasm);
 if (jakalHost) installAutomaticNumbering(() => inputHandler);
 installImageTools(registry);
+// Before the document drop listener below: image drops use the inline, cell-aware path.
+if (jakalHost) installImageDrop(() => inputHandler, () => wasm);
+if (jakalHost) installImagePaste(() => inputHandler, () => wasm);
+if (jakalHost) installMenuPaste(registry);
 installOfficeFonts(registry, {generation:()=>wasm.documentGeneration});
 let jakalFontRefresh = 0;
 document.addEventListener('jakal-font-loaded', () => { if (jakalFontRefresh) return; jakalFontRefresh = requestAnimationFrame(() => { jakalFontRefresh=0; wasm.invalidateCanvasMetricFonts?.(); const refresh=canvasView?.refreshFontResources?.(); if(refresh)void refresh.catch(()=>canvasView?.refreshPages()); }); });
@@ -94,6 +101,13 @@ eventBus.on('document-mutated', jakalChanged);
 eventBus.on('document-changed', jakalChanged);
 window.addEventListener('message', event => {
   if (event.source !== window.parent || event.origin !== location.origin || event.data?.channel !== 'jakal-studio-v1') return;
+  if (event.data.type === 'ai-state' && typeof event.data.requestId === 'string') {
+    jakalPost('ai-state-result', {requestId:event.data.requestId,evidence:{documentEpoch:wasm.documentGeneration,changeSeq:jakalSequence}});
+  }
+  if (event.data.type === 'ai-location' && typeof event.data.requestId === 'string') {
+    try { jakalPost('ai-location-result', {requestId:event.data.requestId,evidence:readAiLocation(inputHandler)}); }
+    catch(error) { jakalPost('ai-location-result', {requestId:event.data.requestId,error:error instanceof Error?error.message:'선택 영역을 읽지 못했습니다.'}); }
+  }
   if (event.data.type === 'ai-read' && typeof event.data.requestId === 'string') {
     try { jakalPost('ai-read-result', { requestId: event.data.requestId, evidence: readAiTarget(wasm, event.data.target) }); }
     catch (error) { jakalPost('ai-read-result', { requestId: event.data.requestId, error: error instanceof Error ? error.message : '문단을 읽지 못했습니다.' }); }

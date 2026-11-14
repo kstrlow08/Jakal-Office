@@ -1,10 +1,17 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import{generateKeyPair,SignJWT}from'jose';
 import{createVerifier}from'../src/auth.mjs';
-import{createHandler,MODEL,parseOutput}from'../src/worker.mjs';
+import{createHandler,MODEL,parseOutput,validateBatch,parseBatch}from'../src/worker.mjs';
 import{EditLimits,LIMITS}from'../src/limits.mjs';
 const vars={ALLOWED_ORIGIN:'https://office.test',FIREBASE_PROJECT_ID:'jakal-office',FIREBASE_PROJECT_NUMBER:'123',FIREBASE_APP_ID:'1:123:web:abc'};
 const valid={source_paragraph:'2026년 학생 30명이 참가했습니다.',editing_request:'간결하게 다듬기'};
+test('batch requests bound total work and reject missing, duplicate or invented text targets',async()=>{
+ const input={editing_request:'교정',segments:[{id:'p0:0:8',source:'본문입니다.'},{id:'p1:0:8',source:'각주입니다.'}]};assert.equal(validateBatch(input),input);
+ for(const segments of [[...input.segments,input.segments[0]],[{id:'p0:0:8',source:'가'.repeat(4000)},{id:'p1:0:8',source:'나'.repeat(4000)}]])assert.throws(()=>validateBatch({...input,segments}));
+ const response=items=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify({replacements:items})}}]}),items=input.segments.map(t=>({id:t.id,replacement:t.source}));assert.deepEqual(parseBatch(response(items),input),{replacements:items});
+ for(const result of [items.slice(0,1),[items[0],items[0]],[items[0],{id:'p9:0:8',replacement:'추가'}],[items[0],{...items[1],replacement:'여러\n문단'}]])assert.throws(()=>parseBatch(response(result),input));
+ const f=fixture();f.env.AI.run=async(model,body)=>{assert.equal(model,MODEL);assert.equal(JSON.parse(body.messages[1].content).segments.length,2);return response(items);};const r=await f.handler(request(input),f.env,f.ctx);assert.equal(r.status,200);assert.deepEqual(await r.json(),{replacements:items});await Promise.all(f.tasks);
+});
 function memory(){const values=new Map();let tail=Promise.resolve();return{get:async k=>structuredClone(values.get(k)),put:async(k,v)=>values.set(k,structuredClone(v)),transaction(run){const next=tail.then(()=>run(this));tail=next.catch(()=>{});return next;}};}
 const request=(body=valid,headers={})=>new Request('https://worker.test/edit',{method:'POST',headers:{Origin:vars.ALLOWED_ORIGIN,'Content-Type':'application/json',...headers},body:JSON.stringify(body)});
 function fixture(){const calls=[],object=new EditLimits({storage:memory()}),tasks=[];const env={...vars,AI:{run:async(model,input)=>{calls.push({model,input});return{choices:[{finish_reason:'stop',message:{content:JSON.stringify({replacement:'2026년 학생 30명이 참가했다.'})}}]};}},LIMITS:{idFromName:()=>1,get:()=>({fetch:(url,init)=>object.fetch(new Request(url,init))})}};return{calls,env,ctx:{waitUntil:p=>tasks.push(p)},tasks,handler:createHandler({verify:async()=> 'test-user'})};}

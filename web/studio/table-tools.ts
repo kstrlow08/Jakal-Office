@@ -7,6 +7,7 @@ type Input = NonNullable<ReturnType<CommandServices['getInputHandler']>>;
 type TableEngine = CommandServices['wasm'] & {
   createNestedTable(position: TablePosition, rows: number, cols: number, options?: TableOptions): TablePosition;
   editNestedTable(position: TablePosition, operation: string, options?: StructureOptions): TablePosition;
+  ensureTrailingParagraph?(section: number, paragraph: number): boolean;
 };
 const preference = 'jakal-table-size';
 function validSize(rows: number, cols: number) {
@@ -85,7 +86,19 @@ export function showTableDialog(mode: boolean | 'split', apply: (rows: number, c
   return dialog;
 }
 
-export function installTableTools(registry: CommandRegistry, getInput: () => Input | null) {
+/** Engine errors are technical ("렌더링 오류: 경로[0] ..."); show a plain instruction instead. */
+export function tableErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return !message || /^렌더링 오류|범위 초과|is not a function|undefined/.test(message)
+    ? '표를 편집하지 못했습니다. 표의 칸을 다시 클릭한 뒤 시도해 주세요.' : message;
+}
+
+/** `report` shows failures; the command dispatcher otherwise only logs them. */
+export function installTableTools(registry: CommandRegistry, getInput: () => Input | null, report?: (message: string) => void) {
+  const attempt = (run: () => void) => {
+    try { run(); }
+    catch (error) { if (!report) throw error; report(tableErrorMessage(error)); }
+  };
   registry.register({id:'table:select-cells',label:'셀 선택 (F5)',canExecute:context=>context.inTable,execute(){
     const input=getInput() as any;if(!input?.cursor.enterCellSelectionMode())return;
     input.cursor.clearSelection();input.caret.hide();input.selectionRenderer.clear();input.updateCellSelection();input.eventBus.emit('command-state-changed');input.focus();
@@ -111,6 +124,8 @@ export function installTableTools(registry: CommandRegistry, getInput: () => Inp
         const result = engine.createTableEx({ sectionIdx: position.sectionIndex, paraIdx: position.paragraphIndex,
           charOffset: position.charOffset, rowCount: rows, colCount: cols, treatAsChar: true });
         if (!result.ok) throw new Error('표를 만들지 못했습니다. 입력 위치를 다시 선택하세요.');
+        // Leave a paragraph below a table that ends the section so typing can continue after it.
+        (engine as TableEngine).ensureTrailingParagraph?.(position.sectionIndex, result.paraIdx);
         return { sectionIndex: position.sectionIndex, paragraphIndex: 0, charOffset: 0,
           parentParaIndex: result.paraIdx, controlIndex: result.controlIdx, cellIndex: 0, cellParaIndex: 0,
           cellPath: [{ controlIndex: result.controlIdx, cellIndex: 0, cellParaIndex: 0 }] };
@@ -127,7 +142,7 @@ export function installTableTools(registry: CommandRegistry, getInput: () => Inp
     canExecute:context=>context.hasDocument&&context.isEditable&&!context.isFormMode&&(context.inTable||context.inTableObjectSelection)&&(getInput()?.getCursorPosition().cellPath?.length??0)<=1,
     execute(services){const input=services.getInputHandler();if(!input)return;const p=input.getCursorPosition(),ref=input.getSelectedTableRef?.();
       const sec=ref?.sec??p.sectionIndex,para=ref?.ppi??p.parentParaIndex,ci=ref?.ci??p.controlIndex;if(para===undefined||ci===undefined)return;
-      input.executeOperation({kind:'snapshot',operationType:'tablePlacement',operation:wasm=>{const result=wasm.setTableProperties(sec,para,ci,{treatAsChar});if(!result.ok)throw new Error('표의 배치를 바꾸지 못했습니다.');return p;}});input.focus();}
+      attempt(()=>input.executeOperation({kind:'snapshot',operationType:'tablePlacement',operation:wasm=>{const result=wasm.setTableProperties(sec,para,ci,{treatAsChar});if(!result.ok)throw new Error('표의 배치를 바꾸지 못했습니다.');return p;}}));input.focus();}
   });
   registry.register({ id: 'table:create-nested', label: '표 안에 새 표 넣기', opensDialog: true,
     canExecute: context => context.inTable && canCreate(context), execute });
@@ -135,7 +150,7 @@ export function installTableTools(registry: CommandRegistry, getInput: () => Inp
     context.hasDocument && context.inTable && (getInput()?.getCursorPosition().cellPath?.length ?? 0) > 1,
     execute: services => {
       const input = services.getInputHandler();
-      if (input) { input.moveCursorTo(parentTableCell(input.getCursorPosition())); input.focus(); }
+      if (input) { attempt(() => input.moveCursorTo(parentTableCell(input.getCursorPosition()))); input.focus(); }
     } });
   const splitCommand = registry.get('table:cell-split');
   if (splitCommand) registry.register({ ...splitCommand, label: '칸 나누기', canExecute: context =>
@@ -171,8 +186,8 @@ export function installTableTools(registry: CommandRegistry, getInput: () => Inp
       if (!input || !position || (position.cellPath?.length ?? 0) < 2) return mergeCommand.execute(services, params);
       const range = input.getSelectedCellRange();
       if (!range) return;
-      input.executeOperation({ kind: 'snapshot', operationType: 'mergeTableCells',
-        operation: engine => (engine as TableEngine).editNestedTable(position, 'mergeCells', { range }) });
+      attempt(() => input.executeOperation({ kind: 'snapshot', operationType: 'mergeTableCells',
+        operation: engine => (engine as TableEngine).editNestedTable(position, 'mergeCells', { range }) }));
       input.exitCellSelectionMode(); input.focus();
     } });
   for (const [id, operation] of Object.entries({
@@ -185,9 +200,36 @@ export function installTableTools(registry: CommandRegistry, getInput: () => Inp
     registry.register({ ...command, execute(services, params) {
       const input = services.getInputHandler(), position = input?.getCursorPosition();
       if (!input || !position || (position.cellPath?.length ?? 0) < 2) return command.execute(services, params);
-      input.executeOperation({ kind: 'snapshot', operationType: operation,
-        operation: engine => (engine as TableEngine).editNestedTable(position, operation) });
+      attempt(() => input.executeOperation({ kind: 'snapshot', operationType: operation,
+        operation: engine => (engine as TableEngine).editNestedTable(position, operation) }));
       input.focus();
     } });
   }
+}
+/** The pinned engine keeps the caret in a table's last row on ArrowDown even
+ * when a paragraph follows the table. Move to that paragraph instead, as an
+ * office editor does. Only root tables in the body are handled. */
+export function installTableExit(getInput: () => any, getBridge: () => any, schedule: (run: () => void) => void = run => { setTimeout(run, 0); }) {
+  const key = (p: any) => JSON.stringify([p.sectionIndex, p.paragraphIndex, p.charOffset, p.parentParaIndex, p.controlIndex, p.cellIndex, p.cellParaIndex]);
+  document.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (event.key !== 'ArrowDown' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return;
+    const input = getInput(), bridge = getBridge();
+    if (!input || !bridge || event.target !== input.textarea || input.isComposing) return;
+    const before = input.getCursorPosition?.();
+    if (!before || before.parentParaIndex === undefined || before.isTextBox || (before.cellPath?.length ?? 1) !== 1) return;
+    if (input.cursor?.isInHeaderFooter?.() || input.cursor?.isInFootnote?.()) return;
+    const start = key(before);
+    schedule(() => {
+      const after = input.getCursorPosition?.();
+      if (!after || key(after) !== start) return; // The engine moved the caret itself.
+      try {
+        const cell = bridge.getCellInfo(before.sectionIndex, before.parentParaIndex, before.controlIndex, before.cellIndex);
+        const table = bridge.getTableDimensions(before.sectionIndex, before.parentParaIndex, before.controlIndex);
+        if (cell.row + Math.max(1, cell.rowSpan ?? 1) < table.rowCount) return;
+        const next = before.parentParaIndex + 1;
+        if (next >= bridge.getParagraphCount(before.sectionIndex)) return;
+        input.moveCursorTo({ sectionIndex: before.sectionIndex, paragraphIndex: next, charOffset: 0 });
+      } catch { /* Keep the caret where the engine left it. */ }
+    });
+  }, true);
 }

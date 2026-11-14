@@ -35,9 +35,11 @@ node web/scripts/configure-cloudflare-ai.mjs --endpoint https://jakal-office-fre
 ## 보안과 무료 한도
 
 - Worker는 Google ID token의 서명·만료·발급자·audience·Google 공급자·확인된 이메일을 검사하고, App Check token의 서명·만료·프로젝트·정확한 웹앱 ID도 검증합니다. 서비스 계정 비밀 키는 필요하지 않습니다. JWT 오프라인 검증이므로 관리자가 개별 계정을 폐기한 경우 기존 ID token은 만료까지 유효할 수 있습니다.
-- 본문 한 문단(1~4,000자)과 요청(1~1,200자)만 전송합니다. 문서 전체, 이미지, 파일명, Google ID token은 AI 모델 프롬프트에 넣지 않습니다. Worker는 검증을 위해 ID token과 App Check token을 받습니다.
+- 현재 문단·선택 영역·문서 전체 중 사용자가 고른 범위의 텍스트와 요청(1~1,200자)을 전송합니다. 문서 전체는 표 셀·중첩 표·각주·미주·머리말·꼬리말·글상자·문서 XML의 메모 텍스트를 포함합니다. 이미지 자체의 글자 인식이나 수식 계산은 하지 않습니다. 이미지·파일 원본·파일명·Google ID token은 모델 프롬프트에 넣지 않습니다. Worker는 검증을 위해 ID token과 App Check token을 받습니다.
+- 긴 문단은 최대 2,800자 단위로 나누고, 최대 20부분·6,000자씩 순차 생성합니다. 부분마다 주소를 검증하며 응답의 누락·중복·임의 주소는 거부합니다. 요청 간격 제한에서는 취소 가능한 대기를 제공하고, 취소·무료 한도 도달 시 이미 받은 수정안은 열려 있는 패널에서 검토·적용하거나 남은 부분을 이어서 생성할 수 있습니다. 새로고침하면 미적용 수정안은 사라집니다.
 - Worker의 콘솔·관측 로그는 끕니다. 한도 저장소는 사용자 UID의 SHA-256 해시, 하루 카운터, 짧은 동시 실행 예약만 보관하며 문서 내용은 저장하지 않습니다. App Check는 서명을 확인하지만 이 Worker에서 단일 사용 토큰 소비 API를 호출하지는 않습니다. 이를 대신한다고 주장하지 않으며 사용자별 한도를 함께 적용합니다.
 - 앱 자체 제한: 사용자당 하루 20회·분당 3회·동시 1개, 사이트 전체 하루 300회·동시 4개. 실패한 생성도 한도에 포함합니다. 하루는 UTC 기준이며 한국 시간 오전 9시에 초기화됩니다. 이 제한은 Neurons 예산을 보장하는 값이 아니므로 Cloudflare 무료 연산 한도가 먼저 소진될 수 있습니다.
+- 전체 문서의 각 묶음도 요청 1회로 계산합니다. 문서의 영역 제한을 없앤 것이며 무료 AI의 요청·연산 한도가 무제한인 것은 아닙니다.
 - Workers AI 무료 연산은 계정 전체 하루 10,000 Neurons입니다. 요청 10,000회가 아닙니다. 다른 Worker가 쓰는 양도 포함합니다. Workers Free에서는 한도 초과 시 실패하며 유료 모델로 자동 전환하지 않습니다. Workers·Durable Objects·인증 공급자에도 별도 무료 한도가 있어 먼저 제한될 수 있습니다.
 - 결제 수단을 연결하거나 Workers Paid로 바꾸지 않습니다. 향후 운영자가 요금제를 바꾸면 Cloudflare의 과금 조건이 달라집니다. 코드의 모델 고정·요청 횟수 제한만으로 유료 계정의 청구액 0원을 보장할 수는 없습니다.
 - Cloudflare는 Workers AI 입력·응답을 기본 학습에 사용하지 않는다고 안내합니다. 표준 무상태 추론의 콘텐츠 보존 제한에는 법적·안전 목적 등의 예외가 있습니다. 무료 서비스의 용량·지연·한국어 교정 품질은 보장하지 않습니다. AI 결과는 원문과 비교하고 선택해서 적용합니다.
@@ -46,7 +48,15 @@ node web/scripts/configure-cloudflare-ai.mjs --endpoint https://jakal-office-fre
 
 1. `/health`는 공개 상태 정보만 반환합니다. 실제 생성이 성공했다는 뜻은 아닙니다.
 2. 토큰 없는 `/edit`, 다른 origin, 잘못된 App Check, 크기 초과 본문을 거부하는지 확인합니다.
-3. 배포 사이트에서 Google 로그인 → 공개 테스트 문단으로 실제 생성 → diff → 일부 선택 적용 → 되돌리기를 확인합니다.
+3. 배포 사이트에서 Google 로그인 → 편집 범위 선택 → 공개 테스트 문서로 실제 생성 → 영역별 diff → 일부 선택 적용 → 되돌리기를 확인합니다.
 4. 실패·시간 초과·문서 변경·로그아웃 후 늦게 도착한 응답이 문서에 적용되지 않는지 확인합니다. 불완전한 JSON·여러 문단·토큰 제한으로 잘린 응답은 적용하지 않습니다.
+
+## 문서 보존 및 성능
+
+XML 해석·부분 나누기·AI 응답 비교·ZIP 패치는 전용 Worker에서 실행합니다. 개체·번호·글자 서식 요소를 유지하며 선택한 텍스트 노드만 바꾸고, 변경하지 않은 ZIP 항목은 압축된 바이트 그대로 복사합니다. 반복 상태 확인은 문서 세대·변경 번호로 처리하므로 매번 전체 내보내기를 수행하지 않습니다.
+
+적용 직전에 원문 버전을 저장하며, 변경 중에는 편집기 입력을 잠시 잠급니다. 여러 부분은 수정된 HWPX를 한 번 다시 여는 방식으로 함께 반영합니다. 기존 편집기의 실행 취소 목록은 다시 열 때 초기화되므로 AI 패널의 **되돌리기** 또는 **저장 기록**을 사용합니다. 적용 후 새 편집이 있으면 이를 덮어쓰지 않도록 즉시 되돌리기를 차단합니다.
+
+유지보수: `node web/scripts/build-ai-document.mjs`로 AI Worker·패널을 빌드하고 `npm run studio:build`를 `web`에서 실행합니다. `web/tests/ai-document.test.mjs`는 실제 HWP/HWPX 재열기, 혼합 서식, 주석·표·머리말 및 160쪽 문서를 검사합니다.
 
 공식 자료: [Workers AI 무료 한도](https://developers.cloudflare.com/workers-ai/platform/pricing/) · [무료 지원 모델](https://developers.cloudflare.com/changelog/post/2026-07-28-models-require-workers-paid/) · [데이터 처리](https://developers.cloudflare.com/workers-ai/platform/data-usage/) · [Durable Objects Free](https://developers.cloudflare.com/durable-objects/platform/pricing/) · [Firebase App Check 서버 검증](https://firebase.google.com/docs/app-check/custom-resource-backend)

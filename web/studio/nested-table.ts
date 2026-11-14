@@ -11,6 +11,7 @@ type NativeDocument = {
   getParagraphCount(section: number): number;
   getParagraphLength(section: number, paragraph: number): number;
   splitParagraph(section: number, paragraph: number, offset: number): string;
+  insertParagraph(section: number, paragraph: number): string;
   deleteParagraph(section: number, paragraph: number): string;
   hasInternalClipboard(): boolean;
   clipboardHasControl(): boolean;
@@ -39,13 +40,22 @@ type NativeDocument = {
   splitTableCellInto(section: number, paragraph: number, control: number, row: number, col: number, rows: number, cols: number, equal: boolean, mergeFirst: boolean): string;
   splitTableCellsInRange(section: number, paragraph: number, control: number, startRow: number, startCol: number, endRow: number, endCol: number, rows: number, cols: number, equal: boolean): string;
   mergeTableCells(section: number, paragraph: number, control: number, startRow: number, startCol: number, endRow: number, endCol: number): string;
+  insertPicture(section: number, paragraph: number, offset: number, path: string, data: Uint8Array, width: number, height: number,
+    naturalWidth: number, naturalHeight: number, extension: string, description: string): string;
+  setPictureProperties(section: number, paragraph: number, control: number, props: string): string;
   beginBatch(): string;
   endBatch(): string;
 };
+export type CellPicture = {
+  bytes: Uint8Array; width: number; height: number; naturalWidth: number; naturalHeight: number;
+  extension: string; description: string;
+  /** Put the picture in its own cell paragraph so the surrounding text can reflow. */
+  ownParagraph?: boolean;
+};
 
-function checked(raw: string): Record<string, any> {
-  const value = JSON.parse(raw);
-  if (!value.ok) throw new Error('표를 삽입하지 못했습니다. 문서의 입력 위치를 확인해 주세요.');
+function checked(raw: string, message = '표를 삽입하지 못했습니다. 문서의 입력 위치를 확인해 주세요.'): Record<string, any> {
+  const value = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (!value?.ok) throw new Error(message);
   return value;
 }
 
@@ -67,10 +77,11 @@ function withScratch<T>(doc: NativeDocument, section: number,
   const copiedObject = hadClipboard && doc.clipboardHasControl() && !!doc.getClipboardText();
   let backup: { first: number; last: number; end: number } | undefined;
   let clipboardChanged = false;
-  const append = () => {
-    const last = doc.getParagraphCount(section) - 1;
-    return checked(doc.splitParagraph(section, last, doc.getParagraphLength(section, last))).paraIdx as number;
-  };
+  // Append an empty paragraph instead of splitting the last one: inline
+  // controls (tables, pictures) are not counted by getParagraphLength(), so a
+  // split "at the end" moved a table that sat at offset 0 of the final
+  // paragraph into the scratch area, where cleanup deleted it.
+  const append = () => checked(doc.insertParagraph(section, doc.getParagraphCount(section))).paraIdx as number;
   doc.beginBatch();
   try {
     if (hadClipboard) {
@@ -148,6 +159,59 @@ export function insertNestedTable(
   });
   refreshTableLayout(doc, position);
   return cursor;
+}
+
+/** Inserts an inline (treat-as-char) picture inside the cell at `position`.
+ * The engine's cell `insertPicture` path creates a floating sibling of the
+ * outer table in the body paragraph instead, so its returned control index
+ * does not address anything inside the cell. Build the picture in a scratch
+ * body paragraph and paste it into the cell, as nested tables do. */
+export function insertCellPicture(doc: NativeDocument, position: TablePosition, picture: CellPicture): TablePosition {
+  if (![picture.width, picture.height, picture.naturalWidth, picture.naturalHeight].every(value => Number.isFinite(value) && value > 0)) {
+    throw new Error('이미지 크기를 확인할 수 없습니다.');
+  }
+  const path = tableCellPath(position);
+  const section = position.sectionIndex, parent = position.parentParaIndex!;
+  const props = JSON.parse(doc.getCellPropertiesByPath(section, parent, JSON.stringify(path), path.at(-1)!.cellIndex));
+  if (props.cellProtect) throw new Error('보호된 셀에는 그림을 넣을 수 없습니다.');
+  const failed = '그림을 넣지 못했습니다. 셀 안을 다시 클릭한 뒤 시도해 주세요.';
+  const cursor = withScratch(doc, section, (appendScratch, copy) => {
+    const scratch = appendScratch();
+    const inserted = checked(doc.insertPicture(section, scratch, 0, '', picture.bytes, Math.round(picture.width), Math.round(picture.height),
+      picture.naturalWidth, picture.naturalHeight, picture.extension, picture.description), failed);
+    checked(doc.setPictureProperties(section, inserted.paraIdx, inserted.controlIdx, JSON.stringify({ treatAsChar: true })), failed);
+    copy(inserted.paraIdx, '', inserted.controlIdx);
+    let offset = position.charOffset;
+    if (picture.ownParagraph) {
+      if (offset > 0) {
+        const split = checked(doc.splitParagraphInCellByPath(section, parent, JSON.stringify(path), offset), failed);
+        path[path.length - 1].cellParaIndex = split.cellParaIndex;
+      }
+      checked(doc.splitParagraphInCellByPath(section, parent, JSON.stringify(path), 0), failed);
+      offset = 0;
+    }
+    const pasted = checked(doc.pasteInternalInCellByPath(section, parent, JSON.stringify(path), offset), failed);
+    if (Number.isSafeInteger(pasted.cellParaIdx)) path[path.length - 1].cellParaIndex = pasted.cellParaIdx;
+    // The paste result reports the text offset, which does not count the
+    // inline picture; the caret goes right after the picture, as in Hancom.
+    const charOffset = offset + 1;
+    return {
+      sectionIndex: section, paragraphIndex: 0, charOffset, parentParaIndex: parent,
+      controlIndex: path[0].controlIndex, cellIndex: path[0].cellIndex, cellParaIndex: path[0].cellParaIndex, cellPath: path,
+    };
+  });
+  refreshTableLayout(doc, position);
+  return cursor;
+}
+
+/** Inline (treat-as-char) tables are inserted into the caret paragraph and the
+ * engine adds no paragraph after them. When that paragraph ends the section the
+ * caret cannot leave the table (Down/click below stay in the last row), so add
+ * an empty paragraph after it. Returns whether one was added. */
+export function ensureTrailingParagraph(doc: NativeDocument, section: number, paragraph: number): boolean {
+  if (paragraph !== doc.getParagraphCount(section) - 1) return false;
+  checked(doc.insertParagraph(section, paragraph + 1), '표 아래 문단을 만들지 못했습니다.');
+  return true;
 }
 
 function refreshTableLayout(doc: NativeDocument, position: TablePosition) {
